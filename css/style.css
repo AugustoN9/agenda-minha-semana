@@ -1,0 +1,207 @@
+body {
+  background-color: #f8f9fa;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.main-container {
+  max-width: 900px;
+}
+
+/* --- Calendário Split Widget --- */
+.calendar-split-container {
+  display: flex;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  max-width: 650px;
+  width: 100%;
+}
+
+.calendar-left-panel {
+  background-color: #2ecc71;
+  color: #ffffff;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 180px;
+  position: relative;
+}
+
+.selected-day-display {
+  font-size: 3.8rem;
+  font-weight: 700;
+  line-height: 1;
+  margin: 0.5rem 0;
+}
+
+.selected-month-year {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.calendar-right-panel {
+  flex: 1;
+  padding: 1.5rem;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  gap: 6px;
+}
+
+.cal-header-day {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.cal-day-cell {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  border-radius: 50%;
+  color: #333;
+  user-select: none;
+}
+
+/* Leve sombreado em todos os dias da semana corrente */
+.cal-day-cell.current-week-day {
+  background-color: rgba(46, 204, 113, 0.15);
+  font-weight: 600;
+}
+
+/* Destaque para o dia atual */
+.cal-day-cell.current-day-selected {
+  background-color: #2ecc71 !important;
+  color: #fff !important;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(46, 204, 113, 0.4);
+}
+
+/* --- Relógio Flip Clock Transparente (Sem Container Escuro) --- */
+.flip-clock {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  gap: 4px;
+  background: transparent;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  vertical-align: middle;
+}
+
+.flip-card {
+  position: relative;
+  background: #3a3d4e;
+  color: #ffffff;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+  font-size: 0.95rem;
+  padding: 3px 6px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+  z-index: 1;
+}
+
+/* Linha central que corta os números */
+.flip-card::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Separador dos dois pontos com a linha central contínua */
+.flip-dots {
+  position: relative;
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 0.85rem;
+  padding: 0 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Linha que cruza os dois pontos */
+.flip-dots::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -2px;
+  right: -2px;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* --- Cards dos Dias da Semana --- */
+.day-card {
+  border-radius: 20px;
+  border: 2px solid #1a1a1a;
+  min-height: 180px;
+  color: #ffffff;
+  padding: 1.2rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Cores dos cards */
+.card-segunda { background-color: #e87234; }
+.card-terca   { background-color: #f2b705; color: #1a1a1a; }
+.card-quarta  { background-color: #4b92db; }
+.card-quinta  { background-color: #b0b5b9; color: #1a1a1a; }
+.card-sexta   { background-color: #79d885; color: #1a1a1a; }
+.card-sabado  { background-color: #0e7299; }
+
+.day-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 0.8rem;
+}
+
+/* --- Estrutura dos Compromissos com a Linha após o Horário --- */
+.appointment-item {
+  margin-bottom: 12px;
+}
+
+.appointment-content {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.8);
+  padding-bottom: 4px;
+}
+
+.card-terca .appointment-content,
+.card-quinta .appointment-content,
+.card-sexta .appointment-content {
+  border-bottom: 2px solid rgba(0, 0, 0, 0.4);
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.btn-add-appointment {
+  background: none;
+  border: none;
+}

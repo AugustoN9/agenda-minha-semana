@@ -1,5 +1,8 @@
-// Estado da Aplicação
+// Configuração da API e Estado da Aplicação
+const API_URL = 'http://localhost:3000/agendamentos';
 let appointments = [];
+let useApi = false;
+let selectedMobileDayKey = null;
 
 // Instâncias Modais do Bootstrap
 let appointmentModal, detailsModal;
@@ -8,7 +11,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   appointmentModal = new bootstrap.Modal(document.getElementById('appointmentModal'));
   detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
 
-  // Carrega os compromissos do JSON / LocalStorage
+  // Define o dia selecionado inicialmente como o dia atual (1 a 6)
+  const now = new Date();
+  let currentDayOfWeek = now.getDay();
+  if (currentDayOfWeek === 0 || currentDayOfWeek === 7) currentDayOfWeek = 1;
+  selectedMobileDayKey = currentDayOfWeek;
+
   await initAppointments();
 
   renderCalendar();
@@ -16,59 +24,103 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('appointmentForm').addEventListener('submit', handleFormSubmit);
   document.getElementById('btnOpenAddModal').addEventListener('click', prepareAddModal);
+
+  window.addEventListener('resize', renderWeekCards);
 });
 
-// Inicialização: Busca dados do agendamentos.json ou do localStorage
 async function initAppointments() {
-  const localData = localStorage.getItem('appointments');
+  try {
+    const response = await fetch(API_URL);
+    if (response.ok) {
+      appointments = await response.json();
+      useApi = true;
+      return;
+    }
+  } catch (e) {
+    console.log('Servidor REST não detectado. Utilizando armazenamento local (localStorage).');
+  }
 
+  const localData = localStorage.getItem('appointments');
   if (localData) {
     appointments = JSON.parse(localData);
   } else {
     try {
       const response = await fetch('../agendamentos.json');
-      if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status}`);
+      if (response.ok) {
+        appointments = await response.json();
+        saveLocalData();
       }
-      appointments = await response.json();
-      saveData();
     } catch (error) {
-      console.error('Erro ao carregar o agendamentos.json:', error);
       appointments = [];
     }
   }
 }
 
-// Converte string de hora ("16:00") para minutos totais do dia (960 min)
+async function saveAppointment(appointmentData, isEdit) {
+  if (useApi) {
+    if (isEdit) {
+      await fetch(`${API_URL}/${appointmentData.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(appointmentData)
+      });
+    } else {
+      await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(appointmentData)
+      });
+    }
+    await initAppointments();
+  } else {
+    if (isEdit) {
+      const index = appointments.findIndex(a => a.id === appointmentData.id);
+      if (index !== -1) appointments[index] = appointmentData;
+    } else {
+      appointments.push(appointmentData);
+    }
+    saveLocalData();
+  }
+}
+
+async function removeAppointment(id) {
+  if (useApi) {
+    await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+    await initAppointments();
+  } else {
+    appointments = appointments.filter(a => a.id !== id);
+    saveLocalData();
+  }
+}
+
+function saveLocalData() {
+  localStorage.setItem('appointments', JSON.stringify(appointments));
+}
+
 function timeToMinutes(timeStr) {
   const [hours, minutes] = timeStr.split(':').map(Number);
   return hours * 60 + minutes;
 }
 
-// Converte minutos do dia para formato "HH:mm"
 function minutesToTime(totalMinutes) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
-// Verifica se há conflito de horário
 function findTimeConflict(newApp) {
   const newStart = timeToMinutes(newApp.time);
-  const newDuration = newApp.duration ? parseInt(newApp.duration) : 30; // Padrão: 30 min
+  const newDuration = newApp.duration ? parseInt(newApp.duration) : 30;
   const newEnd = newStart + newDuration;
 
   for (const app of appointments) {
-    // Ignora o próprio registro se estiver editando
-    if (app.id === newApp.id) continue;
+    if (String(app.id) === String(newApp.id)) continue;
 
-    // Apenas verifica compromissos do mesmo dia
     if (app.date === newApp.date) {
       const existingStart = timeToMinutes(app.time);
-      const existingDuration = app.duration ? parseInt(app.duration) : 30; // Padrão: 30 min
+      const existingDuration = app.duration ? parseInt(app.duration) : 30;
       const existingEnd = existingStart + existingDuration;
 
-      // H2 > H1_inicio E H1 < H2_fim (fórmula clássica de sobreposição de intervalos)
       if (newStart < existingEnd && newEnd > existingStart) {
         return {
           conflict: true,
@@ -82,7 +134,6 @@ function findTimeConflict(newApp) {
   return { conflict: false };
 }
 
-// Gera HTML do Relógio Flip Clock para os horários
 function generateFlipClockHtml(timeStr) {
   const [hh, mm] = timeStr.split(':');
   return `
@@ -94,7 +145,6 @@ function generateFlipClockHtml(timeStr) {
   `;
 }
 
-// Renderização do Calendário com leve sombreado na semana corrente
 function renderCalendar() {
   const grid = document.getElementById('calendarDaysGrid');
   grid.innerHTML = '';
@@ -131,21 +181,58 @@ function renderCalendar() {
   }
 }
 
-// Renderização dos Cards dos Dias da Semana (Ordenados por horário)
+// Renderiza Mini Cards Seletores para Telas Pequenas
+function renderMobileSelectors(daysConfig) {
+  const selectorsContainer = document.getElementById('mobileDaySelectors');
+  selectorsContainer.innerHTML = '';
+
+  daysConfig.forEach(day => {
+    const miniCard = document.createElement('div');
+    const isActive = day.key === selectedMobileDayKey ? 'active' : '';
+    miniCard.className = `mini-day-card ${isActive}`;
+    miniCard.innerText = day.short;
+    miniCard.onclick = () => {
+      selectedMobileDayKey = day.key;
+      renderWeekCards();
+    };
+    selectorsContainer.appendChild(miniCard);
+  });
+}
+
+// Renderização dos Cards dos Dias da Semana
 function renderWeekCards() {
   const container = document.getElementById('weekCardsContainer');
   container.innerHTML = '';
 
+  const now = new Date();
+  let todayKey = now.getDay();
+  if (todayKey === 0) todayKey = 7;
+
+  const isMobile = window.innerWidth <= 768;
+
   const daysConfig = [
-    { name: 'Segunda', key: 1, class: 'card-segunda' },
-    { name: 'Terça',   key: 2, class: 'card-terca' },
-    { name: 'Quarta',  key: 3, class: 'card-quarta' },
-    { name: 'Quinta',  key: 4, class: 'card-quinta' },
-    { name: 'Sexta',   key: 5, class: 'card-sexta' },
-    { name: 'Sábado',  key: 6, class: 'card-sabado' }
+    { name: 'Segunda', short: 'Seg', key: 1, class: 'card-segunda' },
+    { name: 'Terça',   short: 'Ter', key: 2, class: 'card-terca' },
+    { name: 'Quarta',  short: 'Qua', key: 3, class: 'card-quarta' },
+    { name: 'Quinta',  short: 'Qui', key: 4, class: 'card-quinta' },
+    { name: 'Sexta',   short: 'Sex', key: 5, class: 'card-sexta' },
+    { name: 'Sábado',  short: 'Sáb', key: 6, class: 'card-sabado' }
   ];
 
+  renderMobileSelectors(daysConfig);
+
   daysConfig.forEach(day => {
+    const isPast = day.key < todayKey;
+    
+    // No mobile exibe apenas o card do dia selecionado nos mini cards
+    // No desktop (largura > 768px), exibe TODOS os 6 dias da semana
+    if (isMobile && day.key !== selectedMobileDayKey) {
+      return;
+    }
+
+    // No desktop, dias passados recebem opacidade e filtro desativado
+    const disabledClass = (!isMobile && isPast) ? 'card-disabled' : '';
+
     const dayAppointments = appointments
       .filter(app => {
         const appDate = new Date(app.date + 'T00:00:00');
@@ -157,17 +244,17 @@ function renderWeekCards() {
     dayAppointments.forEach(app => {
       itemsHtml += `
         <div class="appointment-item d-flex align-items-center mb-3">
-          <div class="cursor-pointer" onclick="showDetails(${app.id})">
+          <div class="cursor-pointer" onclick="showDetails('${app.id}')">
             ${generateFlipClockHtml(app.time)}
           </div>
           
           <div class="appointment-content d-flex justify-content-between align-items-center flex-grow-1 ms-2">
-            <span class="fw-semibold cursor-pointer ms-1" onclick="showDetails(${app.id})">${app.title}</span>
+            <span class="fw-semibold cursor-pointer ms-1" onclick="showDetails('${app.id}')">${app.title}</span>
             <div>
-              <button class="action-btn text-danger me-1" onclick="deleteAppointment(${app.id})" title="Excluir">
+              <button class="action-btn text-danger me-1" onclick="deleteAppointment('${app.id}')" title="Excluir">
                 <i class="bi bi-x-circle-fill"></i>
               </button>
-              <button class="action-btn text-success" onclick="prepareEditModal(${app.id})" title="Editar">
+              <button class="action-btn text-success" onclick="prepareEditModal('${app.id}')" title="Editar">
                 <i class="bi bi-pencil-fill"></i>
               </button>
             </div>
@@ -179,8 +266,8 @@ function renderWeekCards() {
     const col = document.createElement('div');
     col.className = 'col-md-6';
     col.innerHTML = `
-      <div class="day-card ${day.class}">
-        <div class="day-title">${day.name}</div>
+      <div class="day-card ${day.class} ${disabledClass}">
+        <div class="day-title">${day.name} ${(!isMobile && isPast) ? '<small class="fs-6 fw-normal ms-2 opacity-75">(Concluído)</small>' : ''}</div>
         <div class="appointments-list">${itemsHtml || '<small class="opacity-75">Nenhum compromisso</small>'}</div>
       </div>
     `;
@@ -188,15 +275,14 @@ function renderWeekCards() {
   });
 }
 
-// Salvar / Editar Compromisso com Validação de Conflito de Horário
-function handleFormSubmit(e) {
+async function handleFormSubmit(e) {
   e.preventDefault();
 
   const id = document.getElementById('appointmentId').value;
   const isEdit = Boolean(id);
 
   const appointmentData = {
-    id: isEdit ? parseInt(id) : Date.now(),
+    id: isEdit ? id : String(Date.now()),
     date: document.getElementById('date').value,
     time: document.getElementById('time').value,
     duration: document.getElementById('duration').value ? parseInt(document.getElementById('duration').value) : null,
@@ -206,7 +292,6 @@ function handleFormSubmit(e) {
     phone: document.getElementById('phone').value
   };
 
-  // --- VALIDAÇÃO DE CONFLITO ---
   const conflictCheck = findTimeConflict(appointmentData);
 
   if (conflictCheck.conflict) {
@@ -223,18 +308,10 @@ function handleFormSubmit(e) {
       confirmButtonColor: '#e87234'
     });
 
-    return; // Bloqueia o salvamento
+    return;
   }
 
-  // Se não houver conflito, salva normalmente
-  if (isEdit) {
-    const index = appointments.findIndex(a => a.id === parseInt(id));
-    if (index !== -1) appointments[index] = appointmentData;
-  } else {
-    appointments.push(appointmentData);
-  }
-
-  saveData();
+  await saveAppointment(appointmentData, isEdit);
   appointmentModal.hide();
   renderWeekCards();
 
@@ -249,16 +326,14 @@ function handleFormSubmit(e) {
   });
 }
 
-// Preparar modal para adição
 function prepareAddModal() {
   document.getElementById('appointmentForm').reset();
   document.getElementById('appointmentId').value = '';
   document.getElementById('modalTitle').innerText = 'Novo Compromisso';
 }
 
-// Preparar modal para edição
 function prepareEditModal(id) {
-  const app = appointments.find(a => a.id === id);
+  const app = appointments.find(a => String(a.id) === String(id));
   if (!app) return;
 
   document.getElementById('appointmentId').value = app.id;
@@ -274,9 +349,8 @@ function prepareEditModal(id) {
   appointmentModal.show();
 }
 
-// Excluir Compromisso com Modal SweetAlert2
 function deleteAppointment(id) {
-  const app = appointments.find(a => a.id === id);
+  const app = appointments.find(a => String(a.id) === String(id));
   
   Swal.fire({
     title: 'Excluir compromisso?',
@@ -287,10 +361,9 @@ function deleteAppointment(id) {
     cancelButtonColor: '#6c757d',
     confirmButtonText: 'Sim, excluir',
     cancelButtonText: 'Cancelar'
-  }).then((result) => {
+  }).then(async (result) => {
     if (result.isConfirmed) {
-      appointments = appointments.filter(a => a.id !== id);
-      saveData();
+      await removeAppointment(id);
       renderWeekCards();
 
       Swal.fire({
@@ -306,9 +379,8 @@ function deleteAppointment(id) {
   });
 }
 
-// Exibir Detalhes no Modal
 function showDetails(id) {
-  const app = appointments.find(a => a.id === id);
+  const app = appointments.find(a => String(a.id) === String(id));
   if (!app) return;
 
   const detailBody = document.getElementById('detailBody');
@@ -322,8 +394,4 @@ function showDetails(id) {
   `;
 
   detailsModal.show();
-}
-
-function saveData() {
-  localStorage.setItem('appointments', JSON.stringify(appointments));
 }

@@ -7,7 +7,7 @@ body {
   max-width: 900px;
 }
 
-/* --- Calendário Split Widget (Responsivo) --- */
+/* --- Calendário Split Widget --- */
 .calendar-split-container {
   display: flex;
   background: #ffffff;
@@ -73,13 +73,11 @@ body {
   user-select: none;
 }
 
-/* Leve sombreado nos dias da semana corrente */
 .cal-day-cell.current-week-day {
   background-color: rgba(46, 204, 113, 0.15);
   font-weight: 600;
 }
 
-/* Destaque para o dia atual */
 .cal-day-cell.current-day-selected {
   background-color: #2ecc71 !important;
   color: #fff !important;
@@ -87,7 +85,30 @@ body {
   box-shadow: 0 2px 6px rgba(46, 204, 113, 0.4);
 }
 
-/* --- Relógio Flip Clock Transparente --- */
+/* --- Mini Cards Seletores Mobile --- */
+.mini-day-card {
+  flex: 1;
+  text-align: center;
+  padding: 8px 0;
+  background: #ffffff;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #495057;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.mini-day-card.active {
+  background-color: #2a2c38;
+  color: #ffffff;
+  border-color: #1a1a1a;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* --- Relógio Flip Clock --- */
 .flip-clock {
   display: inline-flex;
   align-items: center;
@@ -154,6 +175,14 @@ body {
   color: #ffffff;
   padding: 1.2rem;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+.day-card.card-disabled {
+  opacity: 0.45;
+  filter: grayscale(80%);
+  pointer-events: none;
+  user-select: none;
 }
 
 .card-segunda { background-color: #e87234; }
@@ -201,7 +230,7 @@ body {
   border: none;
 }
 
-/* --- REGRAS DE MEDIA QUERY (OPERAÇÃO MOBILE) --- */
+/* --- RESPONSIVIDADE MOBILE --- */
 @media (max-width: 768px) {
   .calendar-split-container {
     flex-direction: column;
@@ -234,5 +263,9 @@ body {
   .flip-card {
     font-size: 0.85rem;
     padding: 2px 4px;
+  }
+
+  #mobileDaySelectors {
+    display: flex !important;
   }
 }

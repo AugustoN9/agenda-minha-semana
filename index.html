@@ -32,31 +32,17 @@
       </header>
 
       <!-- Calendário do Mês (Estilo Split Widget) -->
-      <section class="d-flex justify-content-center mb-5">
+      <section class="d-flex justify-content-center mb-4">
         <div class="calendar-split-container">
-          <!-- Painel Verde Lateral sem o botão RESET -->
           <div class="calendar-left-panel">
-            <div
-              class="d-flex align-items-center justify-content-between w-100 my-auto"
-            >
-              <i
-                class="bi bi-chevron-left fs-5"
-                style="cursor: pointer"
-                id="btnPrevDay"
-              ></i>
+            <div class="d-flex align-items-center justify-content-between w-100 my-auto">
+              <i class="bi bi-chevron-left fs-5" style="cursor:pointer;" id="btnPrevDay"></i>
               <div class="selected-day-display" id="displayDayNumber">12</div>
-              <i
-                class="bi bi-chevron-right fs-5"
-                style="cursor: pointer"
-                id="btnNextDay"
-              ></i>
+              <i class="bi bi-chevron-right fs-5" style="cursor:pointer;" id="btnNextDay"></i>
             </div>
-            <div class="selected-month-year mb-2" id="displayMonthYear">
-              OUTUBRO - 2026
-            </div>
+            <div class="selected-month-year mb-2" id="displayMonthYear">OUTUBRO - 2026</div>
           </div>
 
-          <!-- Grid de Dias -->
           <div class="calendar-right-panel">
             <div class="cal-grid" id="calendarHeaderGrid">
               <div class="cal-header-day">Dom</div>
@@ -67,36 +53,29 @@
               <div class="cal-header-day">Sex</div>
               <div class="cal-header-day">Sáb</div>
             </div>
-            <div class="cal-grid" id="calendarDaysGrid">
-              <!-- Gerado via JavaScript -->
-            </div>
+            <div class="cal-grid" id="calendarDaysGrid"></div>
           </div>
         </div>
       </section>
 
-      <!-- Cards dos Dias da Semana (Segunda a Sábado) -->
+      <!-- Mini Cards Seletores dos Dias (Exibidos apenas no Mobile) -->
+      <section class="d-none d-md-none justify-content-between mb-4 gap-1" id="mobileDaySelectors">
+        <!-- Gerado via JavaScript -->
+      </section>
+
+      <!-- Cards dos Dias da Semana -->
       <section class="row g-4" id="weekCardsContainer">
         <!-- Gerado via JavaScript -->
       </section>
     </div>
 
     <!-- Modal Cadastrar / Editar Compromisso -->
-    <div
-      class="modal fade"
-      id="appointmentModal"
-      tabindex="-1"
-      aria-hidden="true"
-    >
+    <div class="modal fade" id="appointmentModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="modalTitle">Novo Compromisso</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <form id="appointmentForm">
             <div class="modal-body">
@@ -111,69 +90,31 @@
                   <input type="time" class="form-control" id="time" required />
                 </div>
                 <div class="col-md-6 mb-3">
-                  <label for="duration" class="form-label"
-                    >Duração (minutos)</label
-                  >
-                  <input
-                    type="number"
-                    class="form-control"
-                    id="duration"
-                    placeholder="Ex: 60"
-                  />
+                  <label for="duration" class="form-label">Duração (minutos)</label>
+                  <input type="number" class="form-control" id="duration" placeholder="Ex: 60" />
                 </div>
               </div>
               <div class="mb-3">
-                <label for="title" class="form-label"
-                  >Título do Compromisso</label
-                >
-                <input
-                  type="text"
-                  class="form-control"
-                  id="title"
-                  required
-                  placeholder="Ex: Dentista"
-                />
+                <label for="title" class="form-label">Título do Compromisso</label>
+                <input type="text" class="form-control" id="title" required placeholder="Ex: Dentista" />
               </div>
               <div class="mb-3">
-                <label for="description" class="form-label"
-                  >Detalhes / Resumo</label
-                >
-                <textarea
-                  class="form-control"
-                  id="description"
-                  rows="2"
-                  placeholder="Ex: Limpeza de rotina"
-                ></textarea>
+                <label for="description" class="form-label">Detalhes / Resumo</label>
+                <textarea class="form-control" id="description" rows="2" placeholder="Ex: Limpeza de rotina"></textarea>
               </div>
               <div class="row">
                 <div class="col-md-6 mb-3">
                   <label for="location" class="form-label">Local</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="location"
-                    placeholder="Ex: Consultório Dra. Ana"
-                  />
+                  <input type="text" class="form-control" id="location" placeholder="Ex: Consultório Dra. Ana" />
                 </div>
                 <div class="col-md-6 mb-3">
                   <label for="phone" class="form-label">Telefone</label>
-                  <input
-                    type="tel"
-                    class="form-control"
-                    id="phone"
-                    placeholder="(00) 00000-0000"
-                  />
+                  <input type="tel" class="form-control" id="phone" placeholder="(00) 00000-0000" />
                 </div>
               </div>
             </div>
             <div class="modal-footer">
-              <button
-                type="button"
-                class="btn btn-secondary"
-                data-bs-dismiss="modal"
-              >
-                Cancelar
-              </button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
               <button type="submit" class="btn btn-primary">Salvar</button>
             </div>
           </form>
@@ -186,35 +127,20 @@
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="detailTitle">
-              Detalhes do Compromisso
-            </h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
+            <h5 class="modal-title" id="detailTitle">Detalhes do Compromisso</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-body" id="detailBody">
-            <!-- Detalhes preenchidos por JS -->
-          </div>
+          <div class="modal-body" id="detailBody"></div>
           <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              data-bs-dismiss="modal"
-            >
-              Fechar
-            </button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Bootstrap 5 JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 & Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/script.js"></script>
   </body>
 </html>

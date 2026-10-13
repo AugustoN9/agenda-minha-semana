@@ -7,7 +7,7 @@ body {
   max-width: 900px;
 }
 
-/* --- Calendário Split Widget --- */
+/* --- Calendário Split Widget (Responsivo) --- */
 .calendar-split-container {
   display: flex;
   background: #ffffff;
@@ -73,7 +73,7 @@ body {
   user-select: none;
 }
 
-/* Leve sombreado em todos os dias da semana corrente */
+/* Leve sombreado nos dias da semana corrente */
 .cal-day-cell.current-week-day {
   background-color: rgba(46, 204, 113, 0.15);
   font-weight: 600;
@@ -87,7 +87,7 @@ body {
   box-shadow: 0 2px 6px rgba(46, 204, 113, 0.4);
 }
 
-/* --- Relógio Flip Clock Transparente (Sem Container Escuro) --- */
+/* --- Relógio Flip Clock Transparente --- */
 .flip-clock {
   display: inline-flex;
   align-items: center;
@@ -113,7 +113,6 @@ body {
   z-index: 1;
 }
 
-/* Linha central que corta os números */
 .flip-card::after {
   content: '';
   position: absolute;
@@ -125,7 +124,6 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Separador dos dois pontos com a linha central contínua */
 .flip-dots {
   position: relative;
   color: #ffffff;
@@ -137,7 +135,6 @@ body {
   justify-content: center;
 }
 
-/* Linha que cruza os dois pontos */
 .flip-dots::after {
   content: '';
   position: absolute;
@@ -159,7 +156,6 @@ body {
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
-/* Cores dos cards */
 .card-segunda { background-color: #e87234; }
 .card-terca   { background-color: #f2b705; color: #1a1a1a; }
 .card-quarta  { background-color: #4b92db; }
@@ -173,7 +169,6 @@ body {
   margin-bottom: 0.8rem;
 }
 
-/* --- Estrutura dos Compromissos com a Linha após o Horário --- */
 .appointment-item {
   margin-bottom: 12px;
 }
@@ -204,4 +199,40 @@ body {
 .btn-add-appointment {
   background: none;
   border: none;
+}
+
+/* --- REGRAS DE MEDIA QUERY (OPERAÇÃO MOBILE) --- */
+@media (max-width: 768px) {
+  .calendar-split-container {
+    flex-direction: column;
+  }
+
+  .calendar-left-panel {
+    padding: 1rem;
+    min-width: 100%;
+    border-bottom: 2px solid #27ae60;
+  }
+
+  .selected-day-display {
+    font-size: 2.8rem;
+    margin: 0.2rem 0;
+  }
+
+  .calendar-right-panel {
+    padding: 1rem;
+  }
+
+  .cal-day-cell {
+    height: 32px;
+    font-size: 0.85rem;
+  }
+
+  .day-card {
+    padding: 1rem;
+  }
+
+  .flip-card {
+    font-size: 0.85rem;
+    padding: 2px 4px;
+  }
 }

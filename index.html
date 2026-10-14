@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Minha Semana</title>
+    <title>Minha Semana - UFCSPA Agenda</title>
     <!-- Bootstrap 5 CSS -->
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
@@ -20,7 +20,10 @@
     <div class="container py-4 main-container">
       <!-- Cabeçalho -->
       <header class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="fw-bold m-0">Minha Semana</h1>
+        <div>
+          <h1 class="fw-bold m-0">Minha Semana</h1>
+          <p class="text-muted small m-0">Gestão de Compromissos e Grade Académica UFCSPA</p>
+        </div>
         <button
           class="btn btn-add-appointment p-0"
           data-bs-toggle="modal"
@@ -31,91 +34,182 @@
         </button>
       </header>
 
-      <!-- Calendário do Mês (Estilo Split Widget) -->
-      <section class="d-flex justify-content-center mb-4">
-        <div class="calendar-split-container">
-          <div class="calendar-left-panel">
-            <div class="d-flex align-items-center justify-content-between w-100 my-auto">
-              <i class="bi bi-chevron-left fs-5" style="cursor:pointer;" id="btnPrevDay"></i>
-              <div class="selected-day-display" id="displayDayNumber">12</div>
-              <i class="bi bi-chevron-right fs-5" style="cursor:pointer;" id="btnNextDay"></i>
-            </div>
-            <div class="selected-month-year mb-2" id="displayMonthYear">OUTUBRO - 2026</div>
-          </div>
-
-          <div class="calendar-right-panel">
-            <div class="cal-grid" id="calendarHeaderGrid">
-              <div class="cal-header-day">Dom</div>
-              <div class="cal-header-day">Seg</div>
-              <div class="cal-header-day">Ter</div>
-              <div class="cal-header-day">Qua</div>
-              <div class="cal-header-day">Qui</div>
-              <div class="cal-header-day">Sex</div>
-              <div class="cal-header-day">Sáb</div>
-            </div>
-            <div class="cal-grid" id="calendarDaysGrid"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Mini Cards Seletores dos Dias (Exibidos apenas no Mobile) -->
-      <section class="d-none d-md-none justify-content-between mb-4 gap-1" id="mobileDaySelectors">
-        <!-- Gerado via JavaScript -->
-      </section>
-
-      <!-- Cards dos Dias da Semana -->
-      <section class="row g-4" id="weekCardsContainer">
-        <!-- Gerado via JavaScript -->
-      </section>
+      <!-- Grid Principal da Semana -->
+      <main class="row g-4" id="mainGridContainer">
+        <!-- Calendário, Dia Corrente, Disciplinas Semestrais e demais dias renderizados via JS -->
+      </main>
     </div>
 
-    <!-- Modal Cadastrar / Editar Compromisso -->
+    <!-- Modal Cadastrar / Editar Compromisso com Abas -->
     <div class="modal fade" id="appointmentModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="modalTitle">Novo Compromisso</h5>
+          <div class="modal-header border-bottom-0 pb-0">
+            <h5 class="modal-title fw-bold" id="modalTitle">Novo Compromisso</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
+
+          <!-- Navegação por Abas -->
+          <div class="px-3 pt-2 border-bottom">
+            <ul class="nav nav-tabs card-header-tabs" id="appointmentTab" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button
+                  class="nav-link active fw-semibold"
+                  id="general-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#general-pane"
+                  type="button"
+                  role="tab"
+                  onclick="setFormType('general')"
+                >
+                  <i class="bi bi-calendar-event me-1"></i> Geral / Evento Único
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button
+                  class="nav-link fw-semibold"
+                  id="academic-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#academic-pane"
+                  type="button"
+                  role="tab"
+                  onclick="setFormType('academic')"
+                >
+                  <i class="bi bi-mortarboard-fill me-1"></i> Disciplina Semestral (UFCSPA)
+                </button>
+              </li>
+            </ul>
+          </div>
+
           <form id="appointmentForm">
-            <div class="modal-body">
+            <div class="modal-body pt-3">
               <input type="hidden" id="appointmentId" />
+              <input type="hidden" id="formType" value="general" />
+
+              <!-- Título do Compromisso / Disciplina -->
               <div class="mb-3">
-                <label for="date" class="form-label">Data</label>
-                <input type="date" class="form-control" id="date" required />
+                <label for="title" class="form-label fw-bold" id="labelTitle">Título do Compromisso</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="title"
+                  required
+                  placeholder="Ex: Palestra / Reunião / Prova de Anatomia"
+                />
               </div>
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="time" class="form-label">Horário</label>
-                  <input type="time" class="form-control" id="time" required />
+
+              <!-- Conteúdo das Abas -->
+              <div class="tab-content" id="appointmentTabContent">
+                
+                <!-- ABA 1: GERAL / EVENTO ÚNICO -->
+                <div class="tab-pane fade show active" id="general-pane" role="tabpanel">
+                  <div class="row">
+                    <div class="col-md-4 mb-3">
+                      <label for="date" class="form-label fw-bold">Data do Evento</label>
+                      <input type="date" class="form-control" id="date" required />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <label for="time" class="form-label fw-bold">Horário de Início</label>
+                      <input type="time" class="form-control" id="time" required />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <label for="endTime" class="form-label fw-bold">Horário de Fim</label>
+                      <input type="time" class="form-control" id="endTime" />
+                    </div>
+                  </div>
+
+                  <!-- Categoria do Evento Único -->
+                  <div class="p-3 bg-light rounded border mb-3">
+                    <label class="form-label fw-bold d-block mb-2">Categoria do Evento</label>
+                    <div class="d-flex flex-wrap gap-3">
+                      <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="isExam" />
+                        <label class="form-check-label fw-semibold text-danger" for="isExam">
+                          <i class="bi bi-exclamation-triangle-fill me-1"></i> Dia de Prova / Exame
+                        </label>
+                      </div>
+                      <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="isCanceled" />
+                        <label class="form-check-label fw-semibold text-secondary" for="isCanceled">
+                          <i class="bi bi-x-circle-fill me-1"></i> Compromisso Cancelado
+                        </label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                  <label for="duration" class="form-label">Duração (minutos)</label>
-                  <input type="number" class="form-control" id="duration" placeholder="Ex: 60" />
+
+                <!-- ABA 2: DISCIPLINA SEMESTRAL -->
+                <div class="tab-pane fade" id="academic-pane" role="tabpanel">
+                  <div class="row">
+                    <div class="col-md-4 mb-3">
+                      <label for="subjectCode" class="form-label fw-bold">Código da Disciplina</label>
+                      <input type="text" class="form-control" id="subjectCode" placeholder="Ex: BIO0102" />
+                    </div>
+                    <div class="col-md-5 mb-3">
+                      <label for="professor" class="form-label fw-bold">Professor Regente</label>
+                      <input type="text" class="form-control" id="professor" placeholder="Ex: Dr. Carlos Silva" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                      <label for="creditPeriods" class="form-label fw-bold">Períodos / Créditos</label>
+                      <input type="number" class="form-control" id="creditPeriods" min="1" max="10" placeholder="Ex: 4" />
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-md-4 mb-3">
+                      <label for="academicStartDate" class="form-label fw-bold">Data da 1ª Aula</label>
+                      <input type="date" class="form-control" id="academicStartDate" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <label for="academicStartTime" class="form-label fw-bold">Horário de Início</label>
+                      <input type="time" class="form-control" id="academicStartTime" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <label for="academicEndTime" class="form-label fw-bold">Horário de Fim</label>
+                      <input type="time" class="form-control" id="academicEndTime" />
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                      <label for="semester" class="form-label fw-bold">Semestre Letivo</label>
+                      <select class="form-select" id="semester">
+                        <option value="2026/1">2026/1</option>
+                        <option value="2026/2" selected>2026/2</option>
+                        <option value="2027/1">2027/1</option>
+                        <option value="2027/2">2027/2</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label for="repeatWeeks" class="form-label fw-bold">Duração em Semanas</label>
+                      <input type="number" class="form-control" id="repeatWeeks" min="1" max="52" value="16" />
+                      <small class="text-muted">Aulas serão geradas semanalmente para este período.</small>
+                    </div>
+                  </div>
                 </div>
+
               </div>
+
+              <!-- Campos Comuns -->
               <div class="mb-3">
-                <label for="title" class="form-label">Título do Compromisso</label>
-                <input type="text" class="form-control" id="title" required placeholder="Ex: Dentista" />
+                <label for="location" class="form-label fw-bold">Local / Sala / Prédio</label>
+                <input type="text" class="form-control" id="location" placeholder="Ex: Prédio 2 - Sala 304 UFCSPA" />
               </div>
+
               <div class="mb-3">
-                <label for="description" class="form-label">Detalhes / Resumo</label>
-                <textarea class="form-control" id="description" rows="2" placeholder="Ex: Limpeza de rotina"></textarea>
+                <label for="description" class="form-label fw-bold">Detalhes / Descrição</label>
+                <textarea class="form-control" id="description" rows="2" placeholder="Ex: Conteúdo programático, pauta ou observações"></textarea>
               </div>
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="location" class="form-label">Local</label>
-                  <input type="text" class="form-control" id="location" placeholder="Ex: Consultório Dra. Ana" />
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label for="phone" class="form-label">Telefone</label>
-                  <input type="tel" class="form-control" id="phone" placeholder="(00) 00000-0000" />
-                </div>
+
+              <div class="mb-3">
+                <label for="phone" class="form-label fw-bold">Telefone / Contato</label>
+                <input type="tel" class="form-control" id="phone" placeholder="(51) 90000-0000" />
               </div>
             </div>
+
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-              <button type="submit" class="btn btn-primary">Salvar</button>
+              <button type="submit" class="btn btn-primary">Salvar Agendamento(s)</button>
             </div>
           </form>
         </div>

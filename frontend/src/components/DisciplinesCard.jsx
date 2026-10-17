@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 const DIAS_SEMANA_NOMES = {
   0: 'Domingo',
@@ -11,6 +11,9 @@ const DIAS_SEMANA_NOMES = {
 }
 
 function DisciplinesCard({ disciplines = [], activeSemester = '2026/2', onAddDiscipline, onEditDiscipline }) {
+  // Estado para controlar a expansão / minimização do card
+  const [isExpanded, setIsExpanded] = useState(true)
+
   const getDayName = (dateStr) => {
     if (!dateStr) return ''
     const dateParts = dateStr.split('-')
@@ -24,8 +27,14 @@ function DisciplinesCard({ disciplines = [], activeSemester = '2026/2', onAddDis
   return (
     <div className="card shadow-sm border-0 border-start border-primary border-4 rounded-3 bg-white mb-4">
       <div className="card-body p-3">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <div className="d-flex align-items-center gap-2">
+        {/* Cabeçalho Clicável para Minimizar/Expandir */}
+        <div className="d-flex justify-content-between align-items-center">
+          <div 
+            className="d-flex align-items-center gap-2 cursor-pointer user-select-none" 
+            onClick={() => setIsExpanded(!isExpanded)}
+            style={{ cursor: 'pointer' }}
+          >
+            <i className={`bi bi-chevron-${isExpanded ? 'down' : 'right'} text-primary fw-bold`}></i>
             <h6 className="fw-bold m-0 text-dark">
               <i className="bi bi-mortarboard-fill me-2 text-primary"></i>
               Disciplinas do Semestre Ativo
@@ -33,65 +42,72 @@ function DisciplinesCard({ disciplines = [], activeSemester = '2026/2', onAddDis
             <span className="badge bg-primary px-3 py-1 rounded-pill">{activeSemester}</span>
           </div>
 
-          <button 
-            className="btn p-0 border-0 bg-transparent" 
-            title="Adicionar Disciplina"
-            onClick={onAddDiscipline}
-          >
-            <i className="bi bi-plus-circle-fill fs-3 text-primary"></i>
-          </button>
+          <div className="d-flex align-items-center gap-2">
+            <button 
+              className="btn p-0 border-0 bg-transparent" 
+              title="Adicionar Disciplina"
+              onClick={onAddDiscipline}
+            >
+              <i className="bi bi-plus-circle-fill fs-3 text-primary"></i>
+            </button>
+          </div>
         </div>
 
-        {disciplines.length === 0 ? (
-          <p className="text-muted small m-0">
-            Nenhuma disciplina cadastrada para o semestre {activeSemester}.
-          </p>
-        ) : (
-          <div className="row g-2">
-            {disciplines.map((d) => {
-              const dayName = getDayName(d.date) || d.dayOfWeek || ''
-              const locationStr = [d.building, d.room || d.location].filter(Boolean).join(' - ')
-              const idToUse = d.id || d._id
+        {/* Conteúdo Retrátil */}
+        {isExpanded && (
+          <div className="mt-3 pt-2 border-top">
+            {disciplines.length === 0 ? (
+              <p className="text-muted small m-0">
+                Nenhuma disciplina cadastrada para o semestre {activeSemester}.
+              </p>
+            ) : (
+              <div className="row g-2">
+                {disciplines.map((d) => {
+                  const dayName = getDayName(d.date) || d.dayOfWeek || ''
+                  const locationStr = [d.building, d.room || d.location].filter(Boolean).join(' - ')
+                  const idToUse = d.id || d._id
 
-              return (
-                <div key={idToUse} className="col-12 col-md-6 col-lg-4">
-                  <div 
-                    onClick={() => onEditDiscipline(d)}
-                    className="p-3 bg-light rounded-3 border d-flex flex-column justify-content-between h-100 cursor-pointer shadow-sm-hover"
-                    style={{ cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
-                  >
-                    <div>
-                      <div className="d-flex justify-content-between align-items-start mb-2">
-                        <span className="badge bg-secondary text-white fw-bold">
-                          {d.subjectCode || 'S/ CÓD'}
-                        </span>
-                      </div>
+                  return (
+                    <div key={idToUse} className="col-12 col-md-6 col-lg-4">
+                      <div 
+                        onClick={() => onEditDiscipline(d)}
+                        className="p-3 bg-light rounded-3 border d-flex flex-column justify-content-between h-100 cursor-pointer shadow-sm-hover"
+                        style={{ cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
+                      >
+                        <div>
+                          <div className="d-flex justify-content-between align-items-start mb-2">
+                            <span className="badge bg-secondary text-white fw-bold">
+                              {d.subjectCode || 'S/ CÓD'}
+                            </span>
+                          </div>
 
-                      <h6 className="fw-bold text-dark m-0 mb-2">{d.title}</h6>
+                          <h6 className="fw-bold text-dark m-0 mb-2">{d.title}</h6>
 
-                      {dayName && (
-                        <div className="small text-muted mb-1">
-                          <i className="bi bi-calendar-week me-1 text-primary"></i>
-                          <strong>{dayName}</strong>
+                          {dayName && (
+                            <div className="small text-muted mb-1">
+                              <i className="bi bi-calendar-week me-1 text-primary"></i>
+                              <strong>{dayName}</strong>
+                            </div>
+                          )}
+
+                          <div className="small text-muted mb-1">
+                            <i className="bi bi-clock me-1 text-success"></i>
+                            {d.time} {d.endTime ? `- ${d.endTime}` : ''}
+                          </div>
+
+                          {locationStr && (
+                            <div className="small text-secondary">
+                              <i className="bi bi-geo-alt me-1 text-danger"></i>
+                              {locationStr}
+                            </div>
+                          )}
                         </div>
-                      )}
-
-                      <div className="small text-muted mb-1">
-                        <i className="bi bi-clock me-1 text-success"></i>
-                        {d.time} {d.endTime ? `- ${d.endTime}` : ''}
                       </div>
-
-                      {locationStr && (
-                        <div className="small text-secondary">
-                          <i className="bi bi-geo-alt me-1 text-danger"></i>
-                          {locationStr}
-                        </div>
-                      )}
                     </div>
-                  </div>
-                </div>
-              )
-            })}
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

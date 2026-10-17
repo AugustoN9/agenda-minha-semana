@@ -1,6 +1,15 @@
 import React from 'react'
 
-function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointments = [], onEdit, onToggleComplete }) {
+function DayCard({ 
+  dayName, 
+  dateStr, 
+  isPassed, 
+  isToday, 
+  holidayName, 
+  appointments = [], 
+  onEdit, 
+  onToggleComplete 
+}) {
   
   const processAppointments = () => {
     const list = []
@@ -65,15 +74,22 @@ function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointment
 
   return (
     <div className={`card shadow-sm border-0 rounded-3 h-100 bg-white ${isToday ? 'border-start border-success border-4' : ''}`}>
-      <div className="card-header bg-white border-bottom-0 pt-3 px-3 d-flex justify-content-between align-items-center">
+      <div className="card-header bg-white border-bottom-0 pt-3 px-3 pb-0 d-flex justify-content-between align-items-center">
         <div>
           <span className={`fw-bold fs-5 ${isPassed ? 'text-secondary' : 'text-dark'}`}>{dayName}</span>
           {isPassed && <span className="text-muted small ms-2">(Concluído)</span>}
+          
+          {/* Subtítulo dinâmico para o dia ativo/selecionado */}
+          {isToday && (
+            <small className="d-block text-success fw-semibold mt-1">
+              Minhas Tarefas de Hoje
+            </small>
+          )}
         </div>
         <span className={`fw-bold small ${isPassed ? 'text-muted' : 'text-dark'}`}>{dateStr}</span>
       </div>
 
-      <div className="card-body px-3 pb-3 pt-1">
+      <div className="card-body px-3 pb-3 pt-2">
         {holidayName && (
           <div className="p-2 mb-2 rounded bg-warning bg-opacity-10 border border-warning text-warning-emphasis small">
             <i className="bi bi-geo-fill me-1"></i>
@@ -82,7 +98,13 @@ function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointment
         )}
 
         {processedList.length === 0 ? (
-          <p className="text-muted small my-3">Nenhum compromisso</p>
+          <div className="py-3 text-center text-muted">
+            {isToday ? (
+              <span className="fw-semibold text-success fs-6">🎉 Dia livre aproveite!</span>
+            ) : (
+              <span className="small">Nenhum compromisso agendado</span>
+            )}
+          </div>
         ) : (
           processedList.map((item) => {
             const isCompleted = item.isCompleted && !item.isDiscipline
@@ -109,7 +131,7 @@ function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointment
                   {!item.isDiscipline && getPriorityBadge(item.priority)}
                 </div>
 
-                {/* Lado Direito: Checkbox reposicionada no fim da linha */}
+                {/* Lado Direito: Checkbox no fim da linha */}
                 {!item.isDiscipline && (
                   <div className="form-check m-0 p-0 d-flex align-items-center flex-shrink-0">
                     <input 

@@ -1,8 +1,8 @@
 import React from 'react'
 
-function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointments = [], onEdit }) {
+function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointments = [], onEdit, onToggleComplete }) {
   
-  // Função para desmembrar compromissos/disciplinas em múltiplos períodos de horário
+  // Processa e desmembra compromissos/disciplinas em múltiplos períodos se necessário
   const processAppointments = () => {
     const list = []
 
@@ -11,7 +11,7 @@ function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointment
       const durationMin = parseInt(app.periodDuration) || 50
 
       if (app.subjectCode && periodsCount > 1) {
-        // Se for disciplina com múltiplos períodos, divide em N linhas
+        // Disciplina com múltiplos períodos
         const [startH, startM] = (app.time || '18:20').split(':').map(Number)
         let currentBaseDate = new Date()
         currentBaseDate.setHours(startH, startM, 0, 0)
@@ -29,16 +29,18 @@ function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointment
             ...app,
             subKey: `${app.id || app._id}_period_${i}`,
             timeFormatted: `${periodStartH}:${periodStartM} - ${periodEndH}:${periodEndM}`,
-            periodIndex: i + 1
+            periodIndex: i + 1,
+            isDiscipline: true
           })
         }
       } else {
-        // Compromisso normal ou disciplina de 1 período
+        // Compromisso geral ou disciplina de 1 único período
         list.push({
           ...app,
           subKey: app.id || app._id,
           timeFormatted: app.time && app.endTime ? `${app.time} - ${app.endTime}` : (app.time || '00:00'),
-          periodIndex: 1
+          periodIndex: 1,
+          isDiscipline: Boolean(app.subjectCode)
         })
       }
     })
@@ -69,24 +71,46 @@ function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointment
         {processedList.length === 0 ? (
           <p className="text-muted small my-3">Nenhum compromisso</p>
         ) : (
-          processedList.map((item) => (
-            <div 
-              key={item.subKey} 
-              onClick={() => onEdit(item)}
-              className="d-flex align-items-center justify-content-between py-2 px-2 my-1 rounded border-bottom last-border-0 cursor-pointer bg-hover-light"
-              style={{ cursor: 'pointer', transition: 'background-color 0.2s ease' }}
-            >
-              <div className="d-flex align-items-center gap-2">
-                {/* Badge de Horário do Período */}
-                <div className="badge bg-secondary text-white px-2 py-1 fw-bold rounded small" style={{ fontSize: '0.75rem' }}>
-                  {item.timeFormatted}
+          processedList.map((item) => {
+            const isCompleted = item.isCompleted && !item.isDiscipline
+
+            return (
+              <div 
+                key={item.subKey} 
+                onClick={() => onEdit(item)}
+                className={`d-flex align-items-center justify-content-between py-2 px-2 my-1 rounded border-bottom last-border-0 cursor-pointer ${
+                  isCompleted ? 'opacity-50 bg-light' : 'bg-hover-light'
+                }`}
+                style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
+              >
+                {/* Lado Esquerdo: Badge do Horário + Título do Compromisso */}
+                <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
+                  <div className={`badge ${isCompleted ? 'bg-secondary' : 'bg-dark'} text-white px-2 py-1 fw-bold rounded small flex-shrink-0`} style={{ fontSize: '0.75rem' }}>
+                    {item.timeFormatted}
+                  </div>
+
+                  <span className={`fw-semibold small text-truncate ${isCompleted ? 'text-decoration-line-through text-muted' : isPassed ? 'text-muted' : 'text-dark'}`}>
+                    {item.title}
+                  </span>
                 </div>
-                <span className={`fw-semibold small ${isPassed ? 'text-muted' : 'text-dark'}`}>
-                  {item.title}
-                </span>
+
+                {/* Lado Direito: Checkbox reposicionada no fim da linha */}
+                {!item.isDiscipline && (
+                  <div className="form-check m-0 p-0 d-flex align-items-center flex-shrink-0">
+                    <input 
+                      type="checkbox" 
+                      className="form-check-input my-0 cursor-pointer"
+                      checked={Boolean(item.isCompleted)}
+                      onChange={(e) => {
+                        e.stopPropagation() // Impede a abertura do modal ao clicar na checkbox
+                        onToggleComplete(item)
+                      }}
+                    />
+                  </div>
+                )}
               </div>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
     </div>

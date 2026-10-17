@@ -38,6 +38,7 @@ const appointmentSchema = new mongoose.Schema({
   // Flags e Status
   isExam: { type: Boolean, default: false },
   isCanceled: { type: Boolean, default: false },
+  isCompleted: { type: Boolean, default: false }, // Status para compromissos concluídos (To-do)
   holidayName: String
 }, { 
   timestamps: true,

@@ -47,7 +47,7 @@ function App() {
   const [modalMode, setModalMode] = useState('geral')
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   
-  // DATA INICIAL CORRIGIDA: Inicia dinamicamente no dia atual
+  // Data inicial selecionada no calendário (Inicia dinamicamente hoje)
   const [selectedDate, setSelectedDate] = useState(new Date())
 
   const fetchAgendamentos = async () => {
@@ -63,9 +63,7 @@ function App() {
     fetchAgendamentos()
   }, [])
 
-  // CORREÇÃO DO SEMESTRE:
-  // Janeiro (0) a Julho (6) = Semestre 1 (ex: 2026/1)
-  // Agosto (7) a Dezembro (11) = Semestre 2 (ex: 2026/2)
+  // Definição do Semestre Letivo Ativo
   const activeYear = selectedDate.getFullYear()
   const activeMonth = selectedDate.getMonth()
   const activeSemester = `${activeYear}/${activeMonth >= 7 ? '2' : '1'}`
@@ -89,7 +87,7 @@ function App() {
   }
 
   const handleSaveAppointment = async (formData) => {
-    // 1. Checagem de Conflito de Horários no Frontend
+    // Checagem de Conflito de Horários
     const conflict = checkTimeConflict(formData, agendamentos)
     if (conflict) {
       Swal.fire({
@@ -114,6 +112,28 @@ function App() {
     } catch (err) {
       const errorMsg = err.response?.data?.error || 'Não foi possível salvar o agendamento.'
       Swal.fire('Erro no Servidor!', errorMsg, 'error')
+    }
+  }
+
+  // Alterna o status de concluído (Checkbox to-do)
+  const handleToggleComplete = async (appointment) => {
+    try {
+      const idToUse = appointment.id || appointment._id
+      const updatedStatus = !appointment.isCompleted
+
+      // Atualização otimista na interface
+      setAgendamentos(prev => prev.map(item => {
+        const itemId = item.id || item._id
+        return itemId === idToUse ? { ...item, isCompleted: updatedStatus } : item
+      }))
+
+      await axios.put(`${API_URL}/${idToUse}`, {
+        ...appointment,
+        isCompleted: updatedStatus
+      })
+    } catch (err) {
+      console.error('Erro ao atualizar status de conclusão:', err)
+      fetchAgendamentos()
     }
   }
 
@@ -235,7 +255,7 @@ function App() {
                   handleOpenGeralModal(item)
                 }
               }}
-              onDelete={handleDelete}
+              onToggleComplete={handleToggleComplete}
             />
           </div>
         </div>
@@ -245,7 +265,6 @@ function App() {
           disciplines={activeDisciplines} 
           onAddDiscipline={handleOpenDisciplineModal}
           onEditDiscipline={handleEditDiscipline}
-          onDeleteDiscipline={handleDelete}
         />
 
         <div className="row g-3">
@@ -264,7 +283,7 @@ function App() {
                     handleOpenGeralModal(item)
                   }
                 }}
-                onDelete={handleDelete}
+                onToggleComplete={handleToggleComplete}
               />
             </div>
           ))}
@@ -276,6 +295,7 @@ function App() {
         mode={modalMode}
         onClose={() => setShowModal(false)} 
         onSave={handleSaveAppointment}
+        onDelete={handleDelete}
         appointmentToEdit={selectedAppointment}
       />
 

@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react'
 import Swal from 'sweetalert2'
 
+// Categorias em Ordem Alfabética (com OUTRO / GERAL no topo como opção padrão)
 const OPCOES_CATEGORIA = [
   'OUTRO / GERAL',
-  'PROVA',
-  'EXAME MÉDICO',
-  'EXAME LABORATORIAL',
+  'ACADEMIA',
   'ANIVERSÁRIO',
+  'CINEMA',
+  'EVENTO',
+  'EXAME LABORATORIAL',
+  'EXAME MÉDICO',
   'FESTA / COMEMORAÇÃO',
   'HAPPY HOUR',
-  'CINEMA',
-  'VIAGEM',
   'PASSEIO',
-  'EVENTO'
+  'PROVA',
+  'VIAGEM'
 ]
 
 function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, mode = 'geral' }) {
@@ -35,6 +37,7 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
     room: '',
     description: '',
     category: 'OUTRO / GERAL',
+    priority: 'SEM PRIORIDADE',
     semester: '2026/2',
     subjectCode: '',
     professor: '',
@@ -49,9 +52,9 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
         ...appointmentToEdit,
         building: appointmentToEdit.building || '',
         room: appointmentToEdit.room || appointmentToEdit.location || '',
-        periodDuration: appointmentToEdit.periodDuration || '50'
+        periodDuration: appointmentToEdit.periodDuration || '50',
+        priority: appointmentToEdit.priority || 'SEM PRIORIDADE'
       })
-      // Se abriu com um item existente, inicia no modo visualização de detalhes
       setIsEditing(false)
     } else {
       setFormData({
@@ -64,6 +67,7 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
         room: '',
         description: '',
         category: mode === 'disciplina' ? 'DISCIPLINA' : 'OUTRO / GERAL',
+        priority: 'SEM PRIORIDADE',
         semester: '2026/2',
         subjectCode: '',
         professor: '',
@@ -71,7 +75,6 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
         periodDuration: '50',
         isExam: false
       })
-      // Se é um item novo, abre diretamente no formulário de edição/criação
       setIsEditing(true)
     }
   }, [appointmentToEdit, show, mode])
@@ -159,7 +162,6 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
       <div className="modal-dialog modal-dialog-centered modal-lg">
         <div className="modal-content border-0 shadow rounded-4">
           
-          {/* CABEÇALHO */}
           <div className="modal-header bg-light border-0">
             <h5 className="modal-title fw-bold text-dark m-0 d-flex align-items-center gap-2">
               {mode === 'disciplina' ? (
@@ -171,15 +173,26 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
             <button type="button" className="btn-close" onClick={onClose}></button>
           </div>
 
-          {/* VISUALIZAÇÃO DE DETALHES (READ-ONLY) */}
           {!isEditing ? (
+            /* VISUALIZAÇÃO DE DETALHES */
             <div className="modal-body p-4">
               <div className="mb-3">
                 {formData.subjectCode && (
                   <span className="badge bg-secondary mb-2 fs-6">{formData.subjectCode}</span>
                 )}
                 <h3 className="fw-bold text-dark mb-1">{formData.title}</h3>
-                <span className="badge bg-light text-dark border">{formData.category}</span>
+                <div className="d-flex gap-2 align-items-center mt-2">
+                  <span className="badge bg-light text-dark border">{formData.category}</span>
+                  {formData.priority && formData.priority !== 'SEM PRIORIDADE' && (
+                    <span className={`badge ${
+                      formData.priority === 'MUITO ALTA' ? 'bg-danger' :
+                      formData.priority === 'ALTA' ? 'bg-warning text-dark' :
+                      formData.priority === 'MÉDIA' ? 'bg-info text-dark' : 'bg-success'
+                    }`}>
+                      Prioridade: {formData.priority}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="row g-3 py-3 border-top border-bottom my-3">
@@ -272,16 +285,17 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
                     </div>
 
                     <div className="row g-3 mb-3">
-                      <div className="col-md-7">
+                      <div className="col-md-4">
                         <label className="form-label fw-semibold">Local / Sala</label>
                         <input 
                           type="text" 
                           className="form-control" 
                           value={formData.location || ''}
                           onChange={(e) => setFormData({...formData, location: e.target.value})}
+                          placeholder="Ex: Sala 304"
                         />
                       </div>
-                      <div className="col-md-5">
+                      <div className="col-md-4">
                         <label className="form-label fw-semibold">Tipo / Categoria *</label>
                         <select 
                           className="form-select border-success border-opacity-50 fw-semibold"
@@ -291,6 +305,20 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
                           {OPCOES_CATEGORIA.map((cat) => (
                             <option key={cat} value={cat}>{cat}</option>
                           ))}
+                        </select>
+                      </div>
+                      <div className="col-md-4">
+                        <label className="form-label fw-semibold">Prioridade</label>
+                        <select 
+                          className="form-select fw-semibold"
+                          value={formData.priority || 'SEM PRIORIDADE'}
+                          onChange={(e) => setFormData({...formData, priority: e.target.value})}
+                        >
+                          <option value="SEM PRIORIDADE">⚪ Sem Prioridade</option>
+                          <option value="BAIXA">🟢 Prioridade Baixa</option>
+                          <option value="MÉDIA">🟡 Prioridade Média</option>
+                          <option value="ALTA">🟠 Prioridade Alta</option>
+                          <option value="MUITO ALTA">🔴 Prioridade Muito Alta</option>
                         </select>
                       </div>
                     </div>
@@ -426,7 +454,6 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
             </form>
           )}
 
-          {/* RODAPÉ DO MODO VISUALIZAÇÃO COM BOTÕES EDITAR E EXCLUIR */}
           {!isEditing && (
             <div className="modal-footer bg-light border-0 d-flex justify-content-between">
               <button type="button" className="btn btn-outline-danger" onClick={handleDeleteClick}>

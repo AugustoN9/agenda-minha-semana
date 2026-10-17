@@ -35,10 +35,15 @@ const appointmentSchema = new mongoose.Schema({
   professor: String,
   creditPeriods: String,
 
-  // Flags e Status
+  // Flags, Status e Prioridade
+  priority: { 
+    type: String, 
+    enum: ['SEM PRIORIDADE', 'BAIXA', 'MÉDIA', 'ALTA', 'MUITO ALTA'], 
+    default: 'SEM PRIORIDADE' 
+  },
   isExam: { type: Boolean, default: false },
   isCanceled: { type: Boolean, default: false },
-  isCompleted: { type: Boolean, default: false }, // Status para compromissos concluídos (To-do)
+  isCompleted: { type: Boolean, default: false },
   holidayName: String
 }, { 
   timestamps: true,

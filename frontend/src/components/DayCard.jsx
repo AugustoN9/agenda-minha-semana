@@ -2,7 +2,6 @@ import React from 'react'
 
 function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointments = [], onEdit, onToggleComplete }) {
   
-  // Processa e desmembra compromissos/disciplinas em múltiplos períodos se necessário
   const processAppointments = () => {
     const list = []
 
@@ -11,7 +10,6 @@ function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointment
       const durationMin = parseInt(app.periodDuration) || 50
 
       if (app.subjectCode && periodsCount > 1) {
-        // Disciplina com múltiplos períodos
         const [startH, startM] = (app.time || '18:20').split(':').map(Number)
         let currentBaseDate = new Date()
         currentBaseDate.setHours(startH, startM, 0, 0)
@@ -34,7 +32,6 @@ function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointment
           })
         }
       } else {
-        // Compromisso geral ou disciplina de 1 único período
         list.push({
           ...app,
           subKey: app.id || app._id,
@@ -46,6 +43,22 @@ function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointment
     })
 
     return list
+  }
+
+  const getPriorityBadge = (priority) => {
+    switch (priority) {
+      case 'MUITO ALTA':
+        return <span className="badge bg-danger text-white flex-shrink-0" style={{ fontSize: '0.65rem' }}>Muito Alta</span>
+      case 'ALTA':
+        return <span className="badge bg-warning text-dark flex-shrink-0" style={{ fontSize: '0.65rem' }}>Alta</span>
+      case 'BAIXA':
+        return <span className="badge bg-success text-white flex-shrink-0" style={{ fontSize: '0.65rem' }}>Baixa</span>
+      case 'MÉDIA':
+        return <span className="badge bg-info text-dark flex-shrink-0" style={{ fontSize: '0.65rem' }}>Média</span>
+      case 'SEM PRIORIDADE':
+      default:
+        return null
+    }
   }
 
   const processedList = processAppointments()
@@ -83,7 +96,7 @@ function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointment
                 }`}
                 style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
               >
-                {/* Lado Esquerdo: Badge do Horário + Título do Compromisso */}
+                {/* Lado Esquerdo: Badge do Horário + Título + Tag de Prioridade */}
                 <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
                   <div className={`badge ${isCompleted ? 'bg-secondary' : 'bg-dark'} text-white px-2 py-1 fw-bold rounded small flex-shrink-0`} style={{ fontSize: '0.75rem' }}>
                     {item.timeFormatted}
@@ -92,6 +105,8 @@ function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointment
                   <span className={`fw-semibold small text-truncate ${isCompleted ? 'text-decoration-line-through text-muted' : isPassed ? 'text-muted' : 'text-dark'}`}>
                     {item.title}
                   </span>
+
+                  {!item.isDiscipline && getPriorityBadge(item.priority)}
                 </div>
 
                 {/* Lado Direito: Checkbox reposicionada no fim da linha */}
@@ -102,7 +117,7 @@ function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointment
                       className="form-check-input my-0 cursor-pointer"
                       checked={Boolean(item.isCompleted)}
                       onChange={(e) => {
-                        e.stopPropagation() // Impede a abertura do modal ao clicar na checkbox
+                        e.stopPropagation()
                         onToggleComplete(item)
                       }}
                     />

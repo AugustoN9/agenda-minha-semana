@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Appointment {
+  id            String   @id @default(uuid())
+  title         String
+  description   String?
+  date          String   // Formato YYYY-MM-DD
+  time          String   // Formato HH:MM
+  endTime       String?  // Formato HH:MM
+  duration      Int      @default(60)
+  location      String?
+  phone         String?
+
+  // Campos Académicos (UFCSPA)
+  semester      String?  // ex: '2026/2'
+  subjectCode   String?  // ex: 'TUR01'
+  professor     String?
+  creditPeriods String?
+
+  // Flags de Estado
+  isExam        Boolean  @default(false)
+  isCanceled    Boolean  @default(false)
+  holidayName   String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("appointments")
+}

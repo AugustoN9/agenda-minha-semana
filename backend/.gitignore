@@ -1,0 +1,10 @@
+node_modules/
+.env
+dist/
+
+# Pastas de ferramentas de IA / Editores
+.agents/
+.claude/
+.cursor/
+.devin/
+.vscode/

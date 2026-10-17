@@ -1,6 +1,6 @@
 import React from 'react'
 
-function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointments = [], onEdit, onDelete }) {
+function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointments = [], onEdit }) {
   
   // Função para desmembrar compromissos/disciplinas em múltiplos períodos de horário
   const processAppointments = () => {
@@ -20,7 +20,6 @@ function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointment
           const periodStartH = String(currentBaseDate.getHours()).padStart(2, '0')
           const periodStartM = String(currentBaseDate.getMinutes()).padStart(2, '0')
 
-          // Avança a duração do período
           currentBaseDate.setMinutes(currentBaseDate.getMinutes() + durationMin)
 
           const periodEndH = String(currentBaseDate.getHours()).padStart(2, '0')
@@ -71,7 +70,12 @@ function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointment
           <p className="text-muted small my-3">Nenhum compromisso</p>
         ) : (
           processedList.map((item) => (
-            <div key={item.subKey} className="d-flex align-items-center justify-content-between py-2 border-bottom last-border-0">
+            <div 
+              key={item.subKey} 
+              onClick={() => onEdit(item)}
+              className="d-flex align-items-center justify-content-between py-2 px-2 my-1 rounded border-bottom last-border-0 cursor-pointer bg-hover-light"
+              style={{ cursor: 'pointer', transition: 'background-color 0.2s ease' }}
+            >
               <div className="d-flex align-items-center gap-2">
                 {/* Badge de Horário do Período */}
                 <div className="badge bg-secondary text-white px-2 py-1 fw-bold rounded small" style={{ fontSize: '0.75rem' }}>
@@ -80,15 +84,6 @@ function DayCard({ dayName, dateStr, isPassed, isToday, holidayName, appointment
                 <span className={`fw-semibold small ${isPassed ? 'text-muted' : 'text-dark'}`}>
                   {item.title}
                 </span>
-              </div>
-
-              <div className="btn-group btn-group-sm ms-2">
-                <button onClick={() => onDelete(item.id || item._id)} className="btn btn-link text-danger p-0 me-2" title="Excluir">
-                  <i className="bi bi-x-circle-fill"></i>
-                </button>
-                <button onClick={() => onEdit(item)} className="btn btn-link text-success p-0" title="Editar">
-                  <i className="bi bi-pencil-fill"></i>
-                </button>
               </div>
             </div>
           ))

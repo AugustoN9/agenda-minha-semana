@@ -10,7 +10,7 @@ const DIAS_SEMANA_NOMES = {
   6: 'Sábado'
 }
 
-function DisciplinesCard({ disciplines = [], activeSemester = '2026/2', onAddDiscipline, onEditDiscipline, onDeleteDiscipline }) {
+function DisciplinesCard({ disciplines = [], activeSemester = '2026/2', onAddDiscipline, onEditDiscipline }) {
   const getDayName = (dateStr) => {
     if (!dateStr) return ''
     const dateParts = dateStr.split('-')
@@ -55,28 +55,16 @@ function DisciplinesCard({ disciplines = [], activeSemester = '2026/2', onAddDis
 
               return (
                 <div key={idToUse} className="col-12 col-md-6 col-lg-4">
-                  <div className="p-3 bg-light rounded-3 border d-flex flex-column justify-content-between h-100">
+                  <div 
+                    onClick={() => onEditDiscipline(d)}
+                    className="p-3 bg-light rounded-3 border d-flex flex-column justify-content-between h-100 cursor-pointer shadow-sm-hover"
+                    style={{ cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
+                  >
                     <div>
-                      <div className="d-flex justify-content-between align-items-start mb-1">
-                        <span className="badge bg-secondary text-white fw-bold me-2">
+                      <div className="d-flex justify-content-between align-items-start mb-2">
+                        <span className="badge bg-secondary text-white fw-bold">
                           {d.subjectCode || 'S/ CÓD'}
                         </span>
-                        <div className="btn-group btn-group-sm">
-                          <button 
-                            onClick={() => onEditDiscipline(d)} 
-                            className="btn btn-link text-primary p-0 me-2" 
-                            title="Editar"
-                          >
-                            <i className="bi bi-pencil-fill"></i>
-                          </button>
-                          <button 
-                            onClick={() => onDeleteDiscipline(idToUse)} 
-                            className="btn btn-link text-danger p-0" 
-                            title="Excluir"
-                          >
-                            <i className="bi bi-x-circle-fill"></i>
-                          </button>
-                        </div>
                       </div>
 
                       <h6 className="fw-bold text-dark m-0 mb-2">{d.title}</h6>

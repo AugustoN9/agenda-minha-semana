@@ -26,6 +26,32 @@ if (!MONGODB_URI) {
     .catch(err => console.error('Erro ao conectar no MongoDB:', err));
 }
 
+// Helper: Converte "HH:MM" para minutos totais do dia
+const timeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+// Helper: Verifica conflito de horários no banco
+const checkTimeConflict = async (date, newTime, newEndTime, ignoreId = null) => {
+  const existingAppointments = await Appointment.find({ date, isCanceled: false });
+
+  const newStart = timeToMinutes(newTime);
+  const newEnd = timeToMinutes(newEndTime);
+
+  return existingAppointments.find(app => {
+    if (ignoreId && app._id.toString() === ignoreId.toString()) return false;
+    if (!app.time || !app.endTime) return false;
+
+    const existingStart = timeToMinutes(app.time);
+    const existingEnd = timeToMinutes(app.endTime);
+
+    // Condição de sobreposição: NovoInicio < ExistenteFim E NovoFim > ExistenteInicio
+    return newStart < existingEnd && newEnd > existingStart;
+  });
+};
+
 // Rota de Teste
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'API Agenda UFCSPA (MongoDB) ativa!' });
@@ -37,6 +63,7 @@ app.get('/agendamentos', async (req, res) => {
     const appointments = await Appointment.find().sort({ date: 1, time: 1 });
     res.json(appointments);
   } catch (error) {
+    console.error('Erro ao buscar agendamentos:', error);
     res.status(500).json({ error: 'Erro ao buscar agendamentos' });
   }
 });
@@ -44,25 +71,52 @@ app.get('/agendamentos', async (req, res) => {
 // POST - Criar Agendamento
 app.post('/agendamentos', async (req, res) => {
   try {
+    const { date, time, endTime } = req.body;
+
+    // Checa conflito de horário
+    if (date && time && endTime) {
+      const conflict = await checkTimeConflict(date, time, endTime);
+      if (conflict) {
+        return res.status(400).json({ 
+          error: `Conflito de agenda! O horário (${time} - ${endTime}) conflita com "${conflict.title}" (${conflict.time} - ${conflict.endTime}).` 
+        });
+      }
+    }
+
     const newAppointment = new Appointment(req.body);
     const saved = await newAppointment.save();
     res.status(201).json(saved);
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao criar agendamento' });
+    console.error('Erro ao criar agendamento:', error);
+    res.status(400).json({ error: error.message || 'Erro ao criar agendamento' });
   }
 });
 
 // PUT - Editar Agendamento
 app.put('/agendamentos/:id', async (req, res) => {
   try {
+    const { id } = req.params;
+    const { date, time, endTime } = req.body;
+
+    // Checa conflito de horário ignorando o próprio agendamento atual
+    if (date && time && endTime) {
+      const conflict = await checkTimeConflict(date, time, endTime, id);
+      if (conflict) {
+        return res.status(400).json({ 
+          error: `Conflito de agenda! O horário (${time} - ${endTime}) conflita com "${conflict.title}" (${conflict.time} - ${conflict.endTime}).` 
+        });
+      }
+    }
+
     const updated = await Appointment.findByIdAndUpdate(
-      req.params.id,
+      id,
       req.body,
       { new: true, runValidators: true }
     );
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao atualizar agendamento' });
+    console.error('Erro ao atualizar agendamento:', error);
+    res.status(400).json({ error: error.message || 'Erro ao atualizar agendamento' });
   }
 });
 
@@ -72,6 +126,7 @@ app.delete('/agendamentos/:id', async (req, res) => {
     await Appointment.findByIdAndDelete(req.params.id);
     res.status(204).send();
   } catch (error) {
+    console.error('Erro ao remover agendamento:', error);
     res.status(500).json({ error: 'Erro ao remover agendamento' });
   }
 });

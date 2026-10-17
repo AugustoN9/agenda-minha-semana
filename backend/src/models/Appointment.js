@@ -1,11 +1,30 @@
 const mongoose = require('mongoose');
 
 const appointmentSchema = new mongoose.Schema({
-  title: { type: String, required: true },
+  title: { 
+    type: String, 
+    required: [true, 'O título é obrigatório'] 
+  },
   description: String,
-  date: { type: String, required: true }, // Formato YYYY-MM-DD
-  time: { type: String, required: true }, // Formato HH:MM
-  endTime: String,
+  date: { 
+    type: String, 
+    required: [true, 'A data é obrigatória'] 
+  }, // Formato YYYY-MM-DD
+  time: { 
+    type: String, 
+    required: [true, 'O horário de início é obrigatório'] 
+  }, // Formato HH:MM
+  endTime: { 
+    type: String, 
+    required: [true, 'O horário final é obrigatório'],
+    validate: {
+      validator: function(v) {
+        if (!this.time || !v) return true;
+        return v > this.time; // Garante que endTime seja posterior a time
+      },
+      message: 'O horário final deve ser posterior ao horário inicial'
+    }
+  }, // Formato HH:MM
   duration: { type: Number, default: 60 },
   location: String,
   phone: String,

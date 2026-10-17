@@ -26,17 +26,13 @@ const checkTimeConflict = (newApp, existingAppointments) => {
   const idToIgnore = newApp.id || newApp._id
 
   return existingAppointments.find((app) => {
-    // Ignora o próprio agendamento durante edição
     const appId = app.id || app._id
     if (idToIgnore && appId === idToIgnore) return false
-
-    // Apenas verifica se for exatamente no mesmo dia
     if (app.date !== newApp.date) return false
 
     const existingStart = timeToMinutes(app.time)
     const existingEnd = timeToMinutes(app.endTime)
 
-    // Condição de sobreposição parcial ou total
     return newStart < existingEnd && newEnd > existingStart
   })
 }
@@ -63,7 +59,6 @@ function App() {
     fetchAgendamentos()
   }, [])
 
-  // Definição do Semestre Letivo Ativo
   const activeYear = selectedDate.getFullYear()
   const activeMonth = selectedDate.getMonth()
   const activeSemester = `${activeYear}/${activeMonth >= 7 ? '2' : '1'}`
@@ -87,7 +82,6 @@ function App() {
   }
 
   const handleSaveAppointment = async (formData) => {
-    // Checagem de Conflito de Horários
     const conflict = checkTimeConflict(formData, agendamentos)
     if (conflict) {
       Swal.fire({
@@ -115,13 +109,11 @@ function App() {
     }
   }
 
-  // Alterna o status de concluído (Checkbox to-do)
   const handleToggleComplete = async (appointment) => {
     try {
       const idToUse = appointment.id || appointment._id
       const updatedStatus = !appointment.isCompleted
 
-      // Atualização otimista na interface
       setAgendamentos(prev => prev.map(item => {
         const itemId = item.id || item._id
         return itemId === idToUse ? { ...item, isCompleted: updatedStatus } : item
@@ -158,20 +150,24 @@ function App() {
     }
   }
 
-  // Monta os 7 dias da semana
+  // Monta os 7 dias da semana COMEÇANDO NA SEGUNDA-FEIRA
   const getWeekDays = () => {
     const current = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
-    const dayOfWeek = current.getDay()
+    const dayOfWeek = current.getDay() // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
     
-    const sunday = new Date(current)
-    sunday.setDate(current.getDate() - dayOfWeek)
+    // Calcula quantos dias voltar para encontrar a Segunda-feira
+    // Se for Domingo (0), volta 6 dias. Caso contrário, volta (dayOfWeek - 1) dias.
+    const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+
+    const monday = new Date(current)
+    monday.setDate(current.getDate() - distanceToMonday)
 
     const todayReal = new Date()
     todayReal.setHours(0, 0, 0, 0)
 
     return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(sunday)
-      d.setDate(sunday.getDate() + i)
+      const d = new Date(monday)
+      d.setDate(monday.getDate() + i)
 
       const year = d.getFullYear()
       const month = String(d.getMonth() + 1).padStart(2, '0')
@@ -199,7 +195,6 @@ function App() {
   const weekDays = getWeekDays()
   const activeDayData = weekDays.find(d => d.isSelectedDay) || weekDays[0]
 
-  // Filtro de compromissos para cada card do dia
   const getAppointmentsForDay = (dia) => {
     return agendamentos.filter((a) => {
       if (a.date === dia.iso && !a.subjectCode) return true
@@ -238,6 +233,7 @@ function App() {
       <div className="container py-4 main-container flex-grow-1">
         <Header onOpenModal={() => handleOpenGeralModal(null)} />
 
+        {/* Linha Superior: Widget do Calendário + Card do Dia Selecionado */}
         <div className="row g-3 mb-3">
           <div className="col-12 col-lg-6">
             <CalendarWidget selectedDate={selectedDate} onSelectDate={setSelectedDate} />
@@ -260,6 +256,7 @@ function App() {
           </div>
         </div>
 
+        {/* Banner de Disciplinas do Semestre Ativo */}
         <DisciplinesCard 
           activeSemester={activeSemester} 
           disciplines={activeDisciplines} 
@@ -267,6 +264,7 @@ function App() {
           onEditDiscipline={handleEditDiscipline}
         />
 
+        {/* Grid dos Restantes Dias da Semana (Segunda a Domingo) */}
         <div className="row g-3">
           {weekDays.filter(d => !d.isSelectedDay).map((dia) => (
             <div key={dia.name} className="col-12 col-md-6">

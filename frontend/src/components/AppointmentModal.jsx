@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import Swal from 'sweetalert2'
 
 const OPCOES_CATEGORIA = [
   'OUTRO / GERAL',
@@ -15,9 +16,17 @@ const OPCOES_CATEGORIA = [
 ]
 
 function AppointmentModal({ show, onClose, onSave, appointmentToEdit, mode = 'geral' }) {
+  const getTodayIso = () => {
+    const today = new Date()
+    const y = today.getFullYear()
+    const m = String(today.getMonth() + 1).padStart(2, '0')
+    const d = String(today.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+
   const [formData, setFormData] = useState({
     title: '',
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayIso(),
     time: '18:20',
     endTime: '20:00',
     location: '',
@@ -29,7 +38,7 @@ function AppointmentModal({ show, onClose, onSave, appointmentToEdit, mode = 'ge
     subjectCode: '',
     professor: '',
     creditPeriods: '2',
-    periodDuration: '50', // Duração em minutos por período
+    periodDuration: '50',
     isExam: false
   })
 
@@ -44,14 +53,14 @@ function AppointmentModal({ show, onClose, onSave, appointmentToEdit, mode = 'ge
     } else {
       setFormData({
         title: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getTodayIso(),
         time: '18:20',
         endTime: '20:00',
         location: '',
         building: '',
         room: '',
         description: '',
-        category: 'OUTRO / GERAL',
+        category: mode === 'disciplina' ? 'DISCIPLINA' : 'OUTRO / GERAL',
         semester: '2026/2',
         subjectCode: '',
         professor: '',
@@ -60,11 +69,10 @@ function AppointmentModal({ show, onClose, onSave, appointmentToEdit, mode = 'ge
         isExam: false
       })
     }
-  }, [appointmentToEdit, show])
+  }, [appointmentToEdit, show, mode])
 
   if (!show) return null
 
-  // Função utilitária para calcular o horário final total da disciplina
   const calculateEndTime = (startTimeStr, periods, durationMinutes) => {
     if (!startTimeStr) return '00:00'
     const [h, m] = startTimeStr.split(':').map(Number)
@@ -81,14 +89,57 @@ function AppointmentModal({ show, onClose, onSave, appointmentToEdit, mode = 'ge
   const handleSubmit = (e) => {
     e.preventDefault()
 
+    // Validação SweetAlert2 - Campos Gerais
+    if (!formData.title.trim() || !formData.date || !formData.time) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Campos Incompletos',
+        text: 'Por favor, preencha o Título, a Data e o Horário Inicial.',
+        confirmButtonColor: '#10b981'
+      })
+      return
+    }
+
     let calculatedEnd = formData.endTime
     if (mode === 'disciplina') {
+      // Validação SweetAlert2 - Código da Disciplina
+      if (!formData.subjectCode.trim()) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Código Obrigatório!',
+          text: 'Informe o código da disciplina (ex: INF06001) para exibi-la corretamente.',
+          confirmButtonColor: '#10b981'
+        })
+        return
+      }
       calculatedEnd = calculateEndTime(formData.time, formData.creditPeriods, formData.periodDuration)
+    } else {
+      if (!formData.endTime) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Horário Final em Falta',
+          text: 'Por favor, informe o horário final do compromisso.',
+          confirmButtonColor: '#10b981'
+        })
+        return
+      }
+    }
+
+    // Validação se Horário Final é maior que Inicial
+    if (calculatedEnd <= formData.time) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Horário Inválido',
+        text: 'O horário final deve ser posterior ao horário de início.',
+        confirmButtonColor: '#10b981'
+      })
+      return
     }
 
     const dataToSave = {
       ...formData,
       endTime: calculatedEnd,
+      category: mode === 'disciplina' ? 'DISCIPLINA' : formData.category,
       isExam: formData.category === 'PROVA',
       location: formData.room || formData.location
     }
@@ -119,7 +170,6 @@ function AppointmentModal({ show, onClose, onSave, appointmentToEdit, mode = 'ge
           <form onSubmit={handleSubmit}>
             <div className="modal-body p-4">
               {mode === 'geral' ? (
-                /* FORMULÁRIO GERAL */
                 <>
                   <div className="mb-3">
                     <label className="form-label fw-semibold">Título do Compromisso *</label>
@@ -155,10 +205,11 @@ function AppointmentModal({ show, onClose, onSave, appointmentToEdit, mode = 'ge
                       />
                     </div>
                     <div className="col-md-3">
-                      <label className="form-label fw-semibold">Fim</label>
+                      <label className="form-label fw-semibold">Fim *</label>
                       <input 
                         type="time" 
                         className="form-control" 
+                        required
                         value={formData.endTime || ''}
                         onChange={(e) => setFormData({...formData, endTime: e.target.value})}
                       />
@@ -191,7 +242,6 @@ function AppointmentModal({ show, onClose, onSave, appointmentToEdit, mode = 'ge
                   </div>
                 </>
               ) : (
-                /* FORMULÁRIO DE DISCIPLINA COM CÁLCULO DE PERÍODOS */
                 <>
                   <div className="row g-3 mb-3">
                     <div className="col-md-8">
@@ -206,10 +256,11 @@ function AppointmentModal({ show, onClose, onSave, appointmentToEdit, mode = 'ge
                       />
                     </div>
                     <div className="col-md-4">
-                      <label className="form-label fw-semibold">Código da Cadeira</label>
+                      <label className="form-label fw-semibold">Código da Cadeira *</label>
                       <input 
                         type="text" 
-                        className="form-control" 
+                        className="form-control border-primary border-opacity-50" 
+                        required
                         value={formData.subjectCode || ''}
                         onChange={(e) => setFormData({...formData, subjectCode: e.target.value})}
                         placeholder="Ex: INF06001"

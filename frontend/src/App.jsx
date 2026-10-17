@@ -12,14 +12,43 @@ import Footer from './components/Footer'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/agendamentos'
 const DIAS_NOMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
+// Helper: Converte "HH:MM" para minutos totais do dia
+const timeToMinutes = (timeStr) => {
+  if (!timeStr) return 0
+  const [hours, minutes] = timeStr.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+// Helper: Verifica se há sobreposição de horário no mesmo dia
+const checkTimeConflict = (newApp, existingAppointments) => {
+  const newStart = timeToMinutes(newApp.time)
+  const newEnd = timeToMinutes(newApp.endTime)
+  const idToIgnore = newApp.id || newApp._id
+
+  return existingAppointments.find((app) => {
+    // Ignora o próprio agendamento durante edição
+    const appId = app.id || app._id
+    if (idToIgnore && appId === idToIgnore) return false
+
+    // Apenas verifica se for exatamente no mesmo dia
+    if (app.date !== newApp.date) return false
+
+    const existingStart = timeToMinutes(app.time)
+    const existingEnd = timeToMinutes(app.endTime)
+
+    // Condição de sobreposição parcial ou total
+    return newStart < existingEnd && newEnd > existingStart
+  })
+}
+
 function App() {
   const [agendamentos, setAgendamentos] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [modalMode, setModalMode] = useState('geral')
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   
-  // Data inicial selecionada no calendário
-  const [selectedDate, setSelectedDate] = useState(new Date(2026, 6, 15)) // 15 de Julho de 2026
+  // DATA INICIAL CORRIGIDA: Inicia dinamicamente no dia atual
+  const [selectedDate, setSelectedDate] = useState(new Date())
 
   const fetchAgendamentos = async () => {
     try {
@@ -60,6 +89,18 @@ function App() {
   }
 
   const handleSaveAppointment = async (formData) => {
+    // 1. Checagem de Conflito de Horários no Frontend
+    const conflict = checkTimeConflict(formData, agendamentos)
+    if (conflict) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Conflito de Agenda!',
+        text: `O horário informado (${formData.time} - ${formData.endTime}) sobrepõe o compromisso "${conflict.title}" (${conflict.time} - ${conflict.endTime}).`,
+        confirmButtonColor: '#ef4444'
+      })
+      return
+    }
+
     try {
       const idToUse = formData.id || formData._id
       if (idToUse) {
@@ -71,7 +112,8 @@ function App() {
       fetchAgendamentos()
       Swal.fire({ icon: 'success', title: 'Salvo com sucesso!', timer: 1200, showConfirmButton: false })
     } catch (err) {
-      Swal.fire('Erro!', 'Não foi possível salvar.', 'error')
+      const errorMsg = err.response?.data?.error || 'Não foi possível salvar o agendamento.'
+      Swal.fire('Erro no Servidor!', errorMsg, 'error')
     }
   }
 
@@ -140,13 +182,10 @@ function App() {
   // Filtro de compromissos para cada card do dia
   const getAppointmentsForDay = (dia) => {
     return agendamentos.filter((a) => {
-      // 1. Compromisso geral por data exata (YYYY-MM-DD)
       if (a.date === dia.iso && !a.subjectCode) return true
 
-      // 2. Disciplinas acadêmicas
       if (a.subjectCode) {
         const itemSemester = a.semester || `${activeYear}/2`
-        // Só exibe se a disciplina pertencer ao semestre do mês visualizado
         if (itemSemester !== activeSemester) return false
 
         if (a.date) {
@@ -155,7 +194,6 @@ function App() {
             const startDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2])
             startDate.setHours(0, 0, 0, 0)
 
-            // A aula só aparece se a data do card for igual ou posterior à data de início da disciplina
             if (dia.fullDate >= startDate && startDate.getDay() === dia.dayIndex) {
               return true
             }
@@ -169,12 +207,9 @@ function App() {
     })
   }
 
-  // Disciplinas exibidas no card horizontal de "Disciplinas do Semestre Ativo"
   const activeDisciplines = agendamentos.filter(a => {
     if (!a.subjectCode) return false
     const itemSemester = a.semester || `${activeYear}/2`
-    
-    // Deve pertencer ao semestre ativo E ter data de início dentro do ano/mês vigente
     return itemSemester === activeSemester
   })
 
@@ -183,7 +218,6 @@ function App() {
       <div className="container py-4 main-container flex-grow-1">
         <Header onOpenModal={() => handleOpenGeralModal(null)} />
 
-        {/* Linha Superior: Widget do Calendário + Card do Dia Selecionado */}
         <div className="row g-3 mb-3">
           <div className="col-12 col-lg-6">
             <CalendarWidget selectedDate={selectedDate} onSelectDate={setSelectedDate} />
@@ -206,7 +240,6 @@ function App() {
           </div>
         </div>
 
-        {/* Banner de Disciplinas do Semestre Ativo */}
         <DisciplinesCard 
           activeSemester={activeSemester} 
           disciplines={activeDisciplines} 
@@ -215,7 +248,6 @@ function App() {
           onDeleteDiscipline={handleDelete}
         />
 
-        {/* Grid dos Restantes Dias da Semana */}
         <div className="row g-3">
           {weekDays.filter(d => !d.isSelectedDay).map((dia) => (
             <div key={dia.name} className="col-12 col-md-6">

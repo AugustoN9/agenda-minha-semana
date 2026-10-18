@@ -8,6 +8,7 @@ import DisciplinesCard from './components/DisciplinesCard'
 import DayCard from './components/DayCard'
 import AppointmentModal from './components/AppointmentModal'
 import Footer from './components/Footer'
+import LoginButton from './components/LoginButton'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/agendamentos'
 const DIAS_NOMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
@@ -19,11 +20,10 @@ const timeToMinutes = (timeStr) => {
 }
 
 const checkTimeConflict = (newApp, existingAppointments) => {
-  // Ignora validação de conflito para Avaliações associadas a disciplinas
   if (newApp.category === 'AVALIAÇÃO UFCSPA') return null
 
   const newStart = timeToMinutes(newApp.time)
-  const newEnd = timeToMinutes(newApp.endTime)
+  const newEnd = timeToMinutes(newEndTime)
   const idToIgnore = newApp.id || newApp._id
 
   return existingAppointments.find((app) => {
@@ -40,17 +40,29 @@ const checkTimeConflict = (newApp, existingAppointments) => {
 }
 
 function App() {
+  // Estado de Autenticação do Utilizador
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user')
+    return savedUser ? JSON.parse(savedUser) : null
+  })
+
   const [agendamentos, setAgendamentos] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [modalMode, setModalMode] = useState('geral')
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   
-  // Data inicial selecionada no calendário (Inicia dinamicamente hoje)
+  // Data inicial selecionada no calendário
   const [selectedDate, setSelectedDate] = useState(new Date())
+
+  // Configuração de cabeçalho com Token JWT para as chamadas à API
+  const getAuthConfig = () => {
+    const token = localStorage.getItem('token')
+    return token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+  }
 
   const fetchAgendamentos = async () => {
     try {
-      const res = await axios.get(API_URL)
+      const res = await axios.get(API_URL, getAuthConfig())
       setAgendamentos(res.data)
     } catch (err) {
       console.error('Erro ao carregar dados:', err)
@@ -58,8 +70,21 @@ function App() {
   }
 
   useEffect(() => {
-    fetchAgendamentos()
-  }, [])
+    if (user) {
+      fetchAgendamentos()
+    }
+  }, [user])
+
+  const handleLoginSuccess = (userData) => {
+    setUser(userData)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setUser(null)
+    setAgendamentos([])
+  }
 
   const activeYear = selectedDate.getFullYear()
   const activeMonth = selectedDate.getMonth()
@@ -97,10 +122,12 @@ function App() {
 
     try {
       const idToUse = formData.id || formData._id
+      const config = getAuthConfig()
+
       if (idToUse) {
-        await axios.put(`${API_URL}/${idToUse}`, formData)
+        await axios.put(`${API_URL}/${idToUse}`, formData, config)
       } else {
-        await axios.post(API_URL, formData)
+        await axios.post(API_URL, formData, config)
       }
       setShowModal(false)
       fetchAgendamentos()
@@ -124,7 +151,7 @@ function App() {
       await axios.put(`${API_URL}/${idToUse}`, {
         ...appointment,
         isCompleted: updatedStatus
-      })
+      }, getAuthConfig())
     } catch (err) {
       console.error('Erro ao atualizar status de conclusão:', err)
       fetchAgendamentos()
@@ -143,7 +170,7 @@ function App() {
 
     if (confirm.isConfirmed) {
       try {
-        await axios.delete(`${API_URL}/${id}`)
+        await axios.delete(`${API_URL}/${id}`, getAuthConfig())
         fetchAgendamentos()
         Swal.fire('Excluído!', 'Removido com sucesso.', 'success')
       } catch (err) {
@@ -192,6 +219,32 @@ function App() {
     })
   }
 
+  // --- TELA DE BLOQUEIO / LOGIN (GATEKEEPER) ---
+  if (!user) {
+    return (
+      <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light px-3">
+        <div className="card shadow-lg p-4 text-center border-0 rounded-4" style={{ maxWidth: '420px', width: '100%' }}>
+          <div className="mb-3">
+            <i className="bi bi-calendar-event-fill text-success" style={{ fontSize: '3.5rem' }}></i>
+          </div>
+          <h3 className="fw-bold text-dark mb-1">Agenda UFCSPA</h3>
+          <p className="text-muted small mb-4">
+            Acesse com sua conta do Google para gerenciar sua rotina acadêmica, disciplinas e avaliações de forma privada.
+          </p>
+          
+          <div className="d-flex justify-content-center">
+            <LoginButton 
+              user={user} 
+              onLoginSuccess={handleLoginSuccess} 
+              onLogout={handleLogout} 
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // --- APLICAÇÃO PRINCIPAL (SÓ EXIBE SE AUTENTICADO) ---
   const weekDays = getWeekDays()
   const activeDayData = weekDays.find(d => d.isSelectedDay) || weekDays[0]
 
@@ -231,7 +284,12 @@ function App() {
   return (
     <div className="d-flex flex-column min-vh-100 bg-light">
       <div className="container py-4 main-container flex-grow-1">
-        <Header onOpenModal={() => handleOpenGeralModal(null)} />
+        <Header 
+          onOpenModal={() => handleOpenGeralModal(null)} 
+          user={user}
+          onLoginSuccess={handleLoginSuccess}
+          onLogout={handleLogout}
+        />
 
         <div className="row g-3 mb-3">
           <div className="col-12 col-lg-6">

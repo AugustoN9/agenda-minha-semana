@@ -1,6 +1,13 @@
 const mongoose = require('mongoose');
 
 const appointmentSchema = new mongoose.Schema({
+  // Vínculo com o utilizador autenticado via Google
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false // Mantém opcional se desejares permitir registros públicos/anonimizados de teste
+  },
+
   title: { 
     type: String, 
     required: [true, 'O título é obrigatório'] 

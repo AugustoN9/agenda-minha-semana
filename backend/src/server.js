@@ -4,6 +4,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const dns = require('dns');
 const Appointment = require('./models/Appointment');
+const { router: authRoutes, authenticateToken } = require('./routes/auth');
 
 // Força o Node.js a usar os servidores DNS do Google para resolver os registros SRV do MongoDB Atlas
 dns.setServers(['8.8.8.8', '8.8.4.4']);
@@ -26,6 +27,9 @@ if (!MONGODB_URI) {
     .catch(err => console.error('Erro ao conectar no MongoDB:', err));
 }
 
+// Rotas de Autenticação Google OAuth2
+app.use('/auth', authRoutes);
+
 // Helper: Converte "HH:MM" para minutos totais do dia
 const timeToMinutes = (timeStr) => {
   if (!timeStr) return 0;
@@ -34,7 +38,10 @@ const timeToMinutes = (timeStr) => {
 };
 
 // Helper: Verifica conflito de horários no banco
-const checkTimeConflict = async (date, newTime, newEndTime, ignoreId = null) => {
+const checkTimeConflict = async (date, newTime, newEndTime, category, ignoreId = null) => {
+  // Avaliações UFCSPA não geram conflito de horário pois vinculam-se à disciplina
+  if (category === 'AVALIAÇÃO UFCSPA') return null;
+
   const existingAppointments = await Appointment.find({ date, isCanceled: false });
 
   const newStart = timeToMinutes(newTime);
@@ -42,6 +49,7 @@ const checkTimeConflict = async (date, newTime, newEndTime, ignoreId = null) => 
 
   return existingAppointments.find(app => {
     if (ignoreId && app._id.toString() === ignoreId.toString()) return false;
+    if (app.category === 'AVALIAÇÃO UFCSPA') return false;
     if (!app.time || !app.endTime) return false;
 
     const existingStart = timeToMinutes(app.time);
@@ -71,11 +79,11 @@ app.get('/agendamentos', async (req, res) => {
 // POST - Criar Agendamento
 app.post('/agendamentos', async (req, res) => {
   try {
-    const { date, time, endTime } = req.body;
+    const { date, time, endTime, category } = req.body;
 
     // Checa conflito de horário
     if (date && time && endTime) {
-      const conflict = await checkTimeConflict(date, time, endTime);
+      const conflict = await checkTimeConflict(date, time, endTime, category);
       if (conflict) {
         return res.status(400).json({ 
           error: `Conflito de agenda! O horário (${time} - ${endTime}) conflita com "${conflict.title}" (${conflict.time} - ${conflict.endTime}).` 
@@ -96,11 +104,11 @@ app.post('/agendamentos', async (req, res) => {
 app.put('/agendamentos/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { date, time, endTime } = req.body;
+    const { date, time, endTime, category } = req.body;
 
     // Checa conflito de horário ignorando o próprio agendamento atual
     if (date && time && endTime) {
-      const conflict = await checkTimeConflict(date, time, endTime, id);
+      const conflict = await checkTimeConflict(date, time, endTime, category, id);
       if (conflict) {
         return res.status(400).json({ 
           error: `Conflito de agenda! O horário (${time} - ${endTime}) conflita com "${conflict.title}" (${conflict.time} - ${conflict.endTime}).` 

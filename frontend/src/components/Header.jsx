@@ -1,19 +1,32 @@
 import React from 'react'
+import LoginButton from './LoginButton'
 
-function Header({ onOpenModal }) {
+function Header({ onOpenModal, user, onLoginSuccess, onLogout }) {
   return (
-    <header className="d-flex justify-content-between align-items-center mb-4">
+    <header className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
       <div>
-        <h1 className="fw-bold m-0 text-dark">Minha Semana</h1>
-        <p className="text-muted small m-0">Organizando seus compromissos</p>
+        <h2 className="fw-bold text-dark m-0 d-flex align-items-center gap-2">
+          <i className="bi bi-calendar-event-fill text-success"></i>
+          Minha Semana
+        </h2>
+        <small className="text-muted">Agenda Acadêmica UFCSPA</small>
       </div>
-      <button 
-        className="btn p-0 border-0 bg-transparent" 
-        title="Novo Compromisso"
-        onClick={() => onOpenModal(null)}
-      >
-        <i className="bi bi-plus-circle-fill display-5 text-success"></i>
-      </button>
+
+      <div className="d-flex align-items-center gap-3">
+        <button 
+          className="btn btn-success rounded-pill px-3 py-2 d-flex align-items-center gap-2 fw-semibold shadow-sm" 
+          onClick={onOpenModal}
+        >
+          <i className="bi bi-plus-lg fs-5"></i>
+          <span className="d-none d-sm-inline">Novo Compromisso</span>
+        </button>
+
+        <LoginButton 
+          user={user} 
+          onLoginSuccess={onLoginSuccess} 
+          onLogout={onLogout} 
+        />
+      </div>
     </header>
   )
 }

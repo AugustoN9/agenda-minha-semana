@@ -12,7 +12,7 @@ const DIAS_SEMANA_NOMES = {
 
 function DisciplinesCard({ disciplines = [], activeSemester = '2026/2', onAddDiscipline, onEditDiscipline }) {
   // Estado para controlar a expansão / minimização do card
-  const [isExpanded, setIsExpanded] = useState(true)
+  const [isExpanded, setIsExpanded] = useState(false)
 
   const getDayName = (dateStr) => {
     if (!dateStr) return ''

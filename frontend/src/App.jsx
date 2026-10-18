@@ -54,18 +54,27 @@ function App() {
   // Data inicial selecionada no calendário
   const [selectedDate, setSelectedDate] = useState(new Date())
 
-  // Configuração de cabeçalho com Token JWT para as chamadas à API
+  // Configuração do cabeçalho com Token JWT extraído diretamente do LocalStorage
   const getAuthConfig = () => {
     const token = localStorage.getItem('token')
     return token ? { headers: { Authorization: `Bearer ${token}` } } : {}
   }
 
   const fetchAgendamentos = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      setAgendamentos([])
+      return
+    }
+
     try {
-      const res = await axios.get(API_URL, getAuthConfig())
+      const res = await axios.get(API_URL, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
       setAgendamentos(res.data)
     } catch (err) {
       console.error('Erro ao carregar dados:', err)
+      setAgendamentos([])
     }
   }
 
@@ -76,8 +85,9 @@ function App() {
   }, [user])
 
   const handleLoginSuccess = (userData) => {
-    setAgendamentos([]) // Reseta os dados da sessão anterior do React
+    setAgendamentos([]) // Zeramos a lista do usuário anterior no estado
     setUser(userData)
+    fetchAgendamentos() // Busca os dados atualizados para o novo usuário logado
   }
 
   const handleLogout = () => {

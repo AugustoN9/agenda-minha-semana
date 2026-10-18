@@ -3,7 +3,7 @@ import { GoogleLogin } from '@react-oauth/google'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 
-const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'http://localhost:3000/auth/google'
+const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'https://agenda-minha-semana-backend.onrender.com/auth/google' 
 
 function LoginButton({ user, onLoginSuccess, onLogout }) {
   const handleGoogleSuccess = async (credentialResponse) => {

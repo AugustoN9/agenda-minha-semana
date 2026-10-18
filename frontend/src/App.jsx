@@ -8,7 +8,7 @@ import DisciplinesCard from './components/DisciplinesCard'
 import DayCard from './components/DayCard'
 import AppointmentModal from './components/AppointmentModal'
 import Footer from './components/Footer'
-import LoginButton from './components/LoginButton'
+import LoginScreen from './components/LoginScreen'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/agendamentos'
 const DIAS_NOMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
@@ -23,7 +23,7 @@ const checkTimeConflict = (newApp, existingAppointments) => {
   if (newApp.category === 'AVALIAÇÃO UFCSPA') return null
 
   const newStart = timeToMinutes(newApp.time)
-  const newEnd = timeToMinutes(newEndTime)
+  const newEnd = timeToMinutes(newApp.endTime)
   const idToIgnore = newApp.id || newApp._id
 
   return existingAppointments.find((app) => {
@@ -222,25 +222,11 @@ function App() {
   // --- TELA DE BLOQUEIO / LOGIN (GATEKEEPER) ---
   if (!user) {
     return (
-      <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light px-3">
-        <div className="card shadow-lg p-4 text-center border-0 rounded-4" style={{ maxWidth: '420px', width: '100%' }}>
-          <div className="mb-3">
-            <i className="bi bi-calendar-event-fill text-success" style={{ fontSize: '3.5rem' }}></i>
-          </div>
-          <h3 className="fw-bold text-dark mb-1">Agenda UFCSPA</h3>
-          <p className="text-muted small mb-4">
-            Acesse com sua conta do Google para gerenciar sua rotina acadêmica, disciplinas e avaliações de forma privada.
-          </p>
-          
-          <div className="d-flex justify-content-center">
-            <LoginButton 
-              user={user} 
-              onLoginSuccess={handleLoginSuccess} 
-              onLogout={handleLogout} 
-            />
-          </div>
-        </div>
-      </div>
+      <LoginScreen 
+        user={user} 
+        onLoginSuccess={handleLoginSuccess} 
+        onLogout={handleLogout} 
+      />
     )
   }
 

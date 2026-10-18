@@ -3,10 +3,12 @@ import React from 'react'
 function DayCard({ 
   dayName, 
   dateStr, 
+  isoDate,
   isPassed, 
   isToday, 
   holidayName, 
   appointments = [], 
+  allAppointments = [],
   onEdit, 
   onToggleComplete 
 }) {
@@ -14,7 +16,15 @@ function DayCard({
   const processAppointments = () => {
     const list = []
 
+    // Identifica avaliações cadastradas especificamente para a data de hoje (YYYY-MM-DD)
+    const evaluationsToday = allAppointments.filter(
+      a => a.category === 'AVALIAÇÃO UFCSPA' && a.date === isoDate
+    )
+
     appointments.forEach((app) => {
+      // Ignora o registro autônomo da avaliação para não duplicar linhas no card
+      if (app.category === 'AVALIAÇÃO UFCSPA') return
+
       const periodsCount = parseInt(app.creditPeriods) || 1
       const durationMin = parseInt(app.periodDuration) || 50
 
@@ -22,6 +32,9 @@ function DayCard({
         const [startH, startM] = (app.time || '18:20').split(':').map(Number)
         let currentBaseDate = new Date()
         currentBaseDate.setHours(startH, startM, 0, 0)
+
+        const subId = app.id || app._id
+        const evalForSub = evaluationsToday.find(e => e.relatedSubjectId === subId || e.relatedSubjectId === app.subjectCode)
 
         for (let i = 0; i < periodsCount; i++) {
           const periodStartH = String(currentBaseDate.getHours()).padStart(2, '0')
@@ -34,19 +47,25 @@ function DayCard({
 
           list.push({
             ...app,
-            subKey: `${app.id || app._id}_period_${i}`,
+            subKey: `${subId}_period_${i}`,
             timeFormatted: `${periodStartH}:${periodStartM} - ${periodEndH}:${periodEndM}`,
             periodIndex: i + 1,
-            isDiscipline: true
+            isDiscipline: true,
+            // Anexa a avaliação apenas no primeiro período da disciplina
+            activeEvaluation: i === 0 ? evalForSub : null
           })
         }
       } else {
+        const subId = app.id || app._id
+        const evalForSub = evaluationsToday.find(e => e.relatedSubjectId === subId || e.relatedSubjectId === app.subjectCode)
+
         list.push({
           ...app,
-          subKey: app.id || app._id,
+          subKey: subId,
           timeFormatted: app.time && app.endTime ? `${app.time} - ${app.endTime}` : (app.time || '00:00'),
           periodIndex: 1,
-          isDiscipline: Boolean(app.subjectCode)
+          isDiscipline: Boolean(app.subjectCode),
+          activeEvaluation: evalForSub
         })
       }
     })
@@ -64,7 +83,6 @@ function DayCard({
         return <span className="badge bg-success text-white flex-shrink-0" style={{ fontSize: '0.65rem' }}>Baixa</span>
       case 'MÉDIA':
         return <span className="badge bg-info text-dark flex-shrink-0" style={{ fontSize: '0.65rem' }}>Média</span>
-      case 'SEM PRIORIDADE':
       default:
         return null
     }
@@ -79,7 +97,6 @@ function DayCard({
           <span className={`fw-bold fs-5 ${isPassed ? 'text-secondary' : 'text-dark'}`}>{dayName}</span>
           {isPassed && <span className="text-muted small ms-2">(Concluído)</span>}
           
-          {/* Subtítulo dinâmico para o dia ativo/selecionado */}
           {isToday && (
             <small className="d-block text-success fw-semibold mt-1">
               Minhas Tarefas de Hoje
@@ -112,13 +129,12 @@ function DayCard({
             return (
               <div 
                 key={item.subKey} 
-                onClick={() => onEdit(item)}
+                onClick={() => onEdit(item.activeEvaluation || item)}
                 className={`d-flex align-items-center justify-content-between py-2 px-2 my-1 rounded border-bottom last-border-0 cursor-pointer ${
                   isCompleted ? 'opacity-50 bg-light' : 'bg-hover-light'
                 }`}
                 style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
               >
-                {/* Lado Esquerdo: Badge do Horário + Título + Tag de Prioridade */}
                 <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
                   <div className={`badge ${isCompleted ? 'bg-secondary' : 'bg-dark'} text-white px-2 py-1 fw-bold rounded small flex-shrink-0`} style={{ fontSize: '0.75rem' }}>
                     {item.timeFormatted}
@@ -128,10 +144,17 @@ function DayCard({
                     {item.title}
                   </span>
 
+                  {/* Destaque Visual para Avaliação UFCSPA */}
+                  {item.activeEvaluation && (
+                    <span className="badge bg-danger text-white flex-shrink-0" style={{ fontSize: '0.7rem' }}>
+                      <i className="bi bi-exclamation-triangle-fill me-1"></i>
+                      {item.activeEvaluation.examType || 'AVALIAÇÃO'} {item.activeEvaluation.examWeight ? `(${item.activeEvaluation.examWeight})` : ''}
+                    </span>
+                  )}
+
                   {!item.isDiscipline && getPriorityBadge(item.priority)}
                 </div>
 
-                {/* Lado Direito: Checkbox no fim da linha */}
                 {!item.isDiscipline && (
                   <div className="form-check m-0 p-0 d-flex align-items-center flex-shrink-0">
                     <input 

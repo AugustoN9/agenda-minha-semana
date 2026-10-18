@@ -12,20 +12,22 @@ import Footer from './components/Footer'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/agendamentos'
 const DIAS_NOMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
-// Helper: Converte "HH:MM" para minutos totais do dia
 const timeToMinutes = (timeStr) => {
   if (!timeStr) return 0
   const [hours, minutes] = timeStr.split(':').map(Number)
   return hours * 60 + minutes
 }
 
-// Helper: Verifica se há sobreposição de horário no mesmo dia
 const checkTimeConflict = (newApp, existingAppointments) => {
+  // Ignora validação de conflito para Avaliações associadas a disciplinas
+  if (newApp.category === 'AVALIAÇÃO UFCSPA') return null
+
   const newStart = timeToMinutes(newApp.time)
   const newEnd = timeToMinutes(newApp.endTime)
   const idToIgnore = newApp.id || newApp._id
 
   return existingAppointments.find((app) => {
+    if (app.category === 'AVALIAÇÃO UFCSPA') return false
     const appId = app.id || app._id
     if (idToIgnore && appId === idToIgnore) return false
     if (app.date !== newApp.date) return false
@@ -153,10 +155,8 @@ function App() {
   // Monta os 7 dias da semana COMEÇANDO NA SEGUNDA-FEIRA
   const getWeekDays = () => {
     const current = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
-    const dayOfWeek = current.getDay() // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+    const dayOfWeek = current.getDay()
     
-    // Calcula quantos dias voltar para encontrar a Segunda-feira
-    // Se for Domingo (0), volta 6 dias. Caso contrário, volta (dayOfWeek - 1) dias.
     const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
 
     const monday = new Date(current)
@@ -233,7 +233,6 @@ function App() {
       <div className="container py-4 main-container flex-grow-1">
         <Header onOpenModal={() => handleOpenGeralModal(null)} />
 
-        {/* Linha Superior: Widget do Calendário + Card do Dia Selecionado */}
         <div className="row g-3 mb-3">
           <div className="col-12 col-lg-6">
             <CalendarWidget selectedDate={selectedDate} onSelectDate={setSelectedDate} />
@@ -242,8 +241,10 @@ function App() {
             <DayCard 
               dayName={activeDayData.name}
               dateStr={activeDayData.dateStr}
+              isoDate={activeDayData.iso}
               isToday={activeDayData.isSelectedDay}
               appointments={getAppointmentsForDay(activeDayData)}
+              allAppointments={agendamentos}
               onEdit={(item) => {
                 if (item.subjectCode) {
                   handleEditDiscipline(item)
@@ -256,7 +257,6 @@ function App() {
           </div>
         </div>
 
-        {/* Banner de Disciplinas do Semestre Ativo */}
         <DisciplinesCard 
           activeSemester={activeSemester} 
           disciplines={activeDisciplines} 
@@ -264,16 +264,17 @@ function App() {
           onEditDiscipline={handleEditDiscipline}
         />
 
-        {/* Grid dos Restantes Dias da Semana (Segunda a Domingo) */}
         <div className="row g-3">
           {weekDays.filter(d => !d.isSelectedDay).map((dia) => (
             <div key={dia.name} className="col-12 col-md-6">
               <DayCard 
                 dayName={dia.name}
                 dateStr={dia.dateStr}
+                isoDate={dia.iso}
                 isPassed={dia.isPassed}
                 holidayName={dia.holiday}
                 appointments={getAppointmentsForDay(dia)}
+                allAppointments={agendamentos}
                 onEdit={(item) => {
                   if (item.subjectCode) {
                     handleEditDiscipline(item)
@@ -295,6 +296,7 @@ function App() {
         onSave={handleSaveAppointment}
         onDelete={handleDelete}
         appointmentToEdit={selectedAppointment}
+        disciplinesList={activeDisciplines}
       />
 
       <Footer />

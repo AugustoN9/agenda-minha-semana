@@ -20,7 +20,7 @@ const appointmentSchema = new mongoose.Schema({
     validate: {
       validator: function(v) {
         if (!this.time || !v) return true;
-        return v > this.time; // Garante que endTime seja posterior a time
+        return v > this.time;
       },
       message: 'O horário final deve ser posterior ao horário inicial'
     }
@@ -34,6 +34,12 @@ const appointmentSchema = new mongoose.Schema({
   subjectCode: String,
   professor: String,
   creditPeriods: String,
+
+  // Campos específicos para AVALIAÇÃO UFCSPA
+  category: String,
+  relatedSubjectId: String, // ID ou Código da disciplina associada
+  examType: String,         // ex: 'AVALIAÇÃO 1', 'AVALIAÇÃO 2'
+  examWeight: String,       // ex: '30%'
 
   // Flags, Status e Prioridade
   priority: { 
@@ -49,7 +55,7 @@ const appointmentSchema = new mongoose.Schema({
   timestamps: true,
   toJSON: {
     transform: (doc, ret) => {
-      ret.id = ret._id.toString(); // Converte o _id do MongoDB para id no formato string do Frontend
+      ret.id = ret._id.toString();
       delete ret._id;
       delete ret.__v;
     }

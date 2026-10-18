@@ -76,6 +76,7 @@ function App() {
   }, [user])
 
   const handleLoginSuccess = (userData) => {
+    setAgendamentos([]) // Reseta os dados da sessão anterior do React
     setUser(userData)
   }
 

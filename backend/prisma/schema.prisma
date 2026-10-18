@@ -7,6 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id           String        @id @default(uuid())
+  googleId     String        @unique
+  email        String        @unique
+  name         String
+  picture      String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+
+  @@map("users")
+}
+
 model Appointment {
   id            String   @id @default(uuid())
   title         String
@@ -28,6 +41,10 @@ model Appointment {
   isExam        Boolean  @default(false)
   isCanceled    Boolean  @default(false)
   holidayName   String?
+
+  // Vínculo com o Usuário
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

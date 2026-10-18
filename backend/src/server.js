@@ -37,12 +37,15 @@ const timeToMinutes = (timeStr) => {
   return hours * 60 + minutes;
 };
 
-// Helper: Verifica conflito de horários no banco
-const checkTimeConflict = async (date, newTime, newEndTime, category, ignoreId = null) => {
+// Helper: Verifica conflito de horários no banco apenas entre os compromissos do próprio utilizador
+const checkTimeConflict = async (date, newTime, newEndTime, category, ignoreId = null, userId = null) => {
   // Avaliações UFCSPA não geram conflito de horário pois vinculam-se à disciplina
   if (category === 'AVALIAÇÃO UFCSPA') return null;
 
-  const existingAppointments = await Appointment.find({ date, isCanceled: false });
+  const query = { date, isCanceled: false };
+  if (userId) query.userId = userId;
+
+  const existingAppointments = await Appointment.find(query);
 
   const newStart = timeToMinutes(newTime);
   const newEnd = timeToMinutes(newEndTime);
@@ -60,15 +63,15 @@ const checkTimeConflict = async (date, newTime, newEndTime, category, ignoreId =
   });
 };
 
-// Rota de Teste
+// Rota de Teste Publica
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'API Agenda UFCSPA (MongoDB) ativa!' });
 });
 
-// GET - Listar Agendamentos
-app.get('/agendamentos', async (req, res) => {
+// GET - Listar Agendamentos (Isolado por utilizador)
+app.get('/agendamentos', authenticateToken, async (req, res) => {
   try {
-    const appointments = await Appointment.find().sort({ date: 1, time: 1 });
+    const appointments = await Appointment.find({ userId: req.userId }).sort({ date: 1, time: 1 });
     res.json(appointments);
   } catch (error) {
     console.error('Erro ao buscar agendamentos:', error);
@@ -76,14 +79,14 @@ app.get('/agendamentos', async (req, res) => {
   }
 });
 
-// POST - Criar Agendamento
-app.post('/agendamentos', async (req, res) => {
+// POST - Criar Agendamento (Vinculado ao utilizador logado)
+app.post('/agendamentos', authenticateToken, async (req, res) => {
   try {
     const { date, time, endTime, category } = req.body;
 
-    // Checa conflito de horário
+    // Checa conflito de horário apenas no escopo do utilizador
     if (date && time && endTime) {
-      const conflict = await checkTimeConflict(date, time, endTime, category);
+      const conflict = await checkTimeConflict(date, time, endTime, category, null, req.userId);
       if (conflict) {
         return res.status(400).json({ 
           error: `Conflito de agenda! O horário (${time} - ${endTime}) conflita com "${conflict.title}" (${conflict.time} - ${conflict.endTime}).` 
@@ -91,7 +94,11 @@ app.post('/agendamentos', async (req, res) => {
       }
     }
 
-    const newAppointment = new Appointment(req.body);
+    const newAppointment = new Appointment({
+      ...req.body,
+      userId: req.userId
+    });
+
     const saved = await newAppointment.save();
     res.status(201).json(saved);
   } catch (error) {
@@ -101,14 +108,14 @@ app.post('/agendamentos', async (req, res) => {
 });
 
 // PUT - Editar Agendamento
-app.put('/agendamentos/:id', async (req, res) => {
+app.put('/agendamentos/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { date, time, endTime, category } = req.body;
 
     // Checa conflito de horário ignorando o próprio agendamento atual
     if (date && time && endTime) {
-      const conflict = await checkTimeConflict(date, time, endTime, category, id);
+      const conflict = await checkTimeConflict(date, time, endTime, category, id, req.userId);
       if (conflict) {
         return res.status(400).json({ 
           error: `Conflito de agenda! O horário (${time} - ${endTime}) conflita com "${conflict.title}" (${conflict.time} - ${conflict.endTime}).` 
@@ -116,11 +123,16 @@ app.put('/agendamentos/:id', async (req, res) => {
       }
     }
 
-    const updated = await Appointment.findByIdAndUpdate(
-      id,
+    const updated = await Appointment.findOneAndUpdate(
+      { _id: id, userId: req.userId },
       req.body,
       { new: true, runValidators: true }
     );
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Agendamento não encontrado ou não autorizado' });
+    }
+
     res.json(updated);
   } catch (error) {
     console.error('Erro ao atualizar agendamento:', error);
@@ -129,9 +141,14 @@ app.put('/agendamentos/:id', async (req, res) => {
 });
 
 // DELETE - Remover Agendamento
-app.delete('/agendamentos/:id', async (req, res) => {
+app.delete('/agendamentos/:id', authenticateToken, async (req, res) => {
   try {
-    await Appointment.findByIdAndDelete(req.params.id);
+    const deleted = await Appointment.findOneAndDelete({ _id: req.params.id, userId: req.userId });
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Agendamento não encontrado ou não autorizado' });
+    }
+
     res.status(204).send();
   } catch (error) {
     console.error('Erro ao remover agendamento:', error);

@@ -13,16 +13,13 @@ function CalendarWidget({ selectedDate, onSelectDate, appointments = [] }) {
   const firstDayOfWeek = new Date(year, month, 1).getDay()
 
   const handlePrevMonth = () => {
-    const prev = new Date(year, month - 1, 1)
-    onSelectDate(prev)
+    onSelectDate(new Date(year, month - 1, 1))
   }
 
   const handleNextMonth = () => {
-    const next = new Date(year, month + 1, 1)
-    onSelectDate(next)
+    onSelectDate(new Date(year, month + 1, 1))
   }
 
-  // Identifica o nível máximo de prioridade dos compromissos pendentes de um determinado dia
   const getDayPriorityStatus = (dayNum) => {
     const monthStr = String(month + 1).padStart(2, '0')
     const dayStr = String(dayNum).padStart(2, '0')
@@ -31,30 +28,25 @@ function CalendarWidget({ selectedDate, onSelectDate, appointments = [] }) {
     const dayApps = appointments.filter(a => a.date === isoDate && !a.isCompleted)
 
     if (dayApps.length === 0) return null
-
     if (dayApps.some(a => a.priority === 'MUITO ALTA')) return 'MUITO ALTA'
     if (dayApps.some(a => a.priority === 'ALTA')) return 'ALTA'
     
-    // Retorna 'GERAL' para dias que possuem compromissos (Sem Prioridade, Baixa ou Média)
     return 'GERAL'
   }
 
   const renderDays = () => {
     const days = []
 
-    // Preenche os espaços vazios do início do mês
     for (let i = 0; i < firstDayOfWeek; i++) {
       days.push(
         <div key={`empty-${i}`} style={{ width: '14.28%' }} className="text-center p-1"></div>
       )
     }
 
-    // Renderiza os dias do mês
     for (let d = 1; d <= daysInMonth; d++) {
       const isSelected = selectedDate.getDate() === d && selectedDate.getMonth() === month && selectedDate.getFullYear() === year
       const priorityStatus = getDayPriorityStatus(d)
 
-      // Define a classe CSS de destaque de acordo com a prioridade do dia
       let priorityClass = ''
       if (!isSelected) {
         if (priorityStatus === 'MUITO ALTA') {
@@ -90,18 +82,23 @@ function CalendarWidget({ selectedDate, onSelectDate, appointments = [] }) {
     return days
   }
 
-  const weekHeaders = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+  const weekHeadersFull = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+  const weekHeadersShort = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 
   return (
     <div className="card border-0 shadow-sm rounded-4 overflow-hidden bg-white h-100">
-      <div className="row g-0 h-100">
+      <div className="row g-0 h-100 flex-column flex-md-row">
         
-        {/* Painel Esquerdo com Destaque do Dia Selecionado */}
-        <div className="col-5 bg-success text-white p-3 d-flex flex-column justify-content-between">
-          <div className="fs-5 fw-bold opacity-75">{year}</div>
-          <div className="display-1 fw-bold text-center my-auto">
+        {/* Painel Verde Superior em Mobile / Lateral Esquerdo em Desktop */}
+        <div className="col-12 col-md-5 bg-success text-white p-3 p-md-4 d-flex flex-column justify-content-between position-relative">
+          <div className="d-flex justify-content-between align-items-center">
+            <span className="fs-5 fw-bold opacity-75">{year}</span>
+          </div>
+
+          <div className="display-1 fw-bold text-center my-2 my-md-auto">
             {selectedDate.getDate()}
           </div>
+
           <div className="d-flex align-items-center justify-content-between pt-2 border-top border-white border-opacity-25">
             <button className="btn btn-sm text-white p-0" onClick={handlePrevMonth}>
               <i className="bi bi-chevron-left fs-5"></i>
@@ -114,10 +111,14 @@ function CalendarWidget({ selectedDate, onSelectDate, appointments = [] }) {
         </div>
 
         {/* Grade do Calendário */}
-        <div className="col-7 p-3 d-flex flex-column justify-content-center">
+        <div className="col-12 col-md-7 p-3 p-md-4 d-flex flex-column justify-content-center">
+          {/* Cabeçalho dos dias da semana com suporte a ecrãs extra pequenos */}
           <div className="d-flex text-center fw-bold text-muted extra-small mb-2">
-            {weekHeaders.map(day => (
-              <div key={day} style={{ width: '14.28%' }}>{day}</div>
+            {weekHeadersFull.map((day, idx) => (
+              <div key={idx} style={{ width: '14.28%' }}>
+                <span className="d-none d-sm-inline">{day}</span>
+                <span className="d-inline d-sm-none">{weekHeadersShort[idx]}</span>
+              </div>
             ))}
           </div>
 

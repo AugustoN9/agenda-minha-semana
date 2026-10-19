@@ -25,7 +25,17 @@ const OPCOES_AVALIACAO = [
   'RECUPERAÇÃO'
 ]
 
-function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, mode = 'geral', disciplinesList = [] }) {
+function AppointmentModal({ 
+  show, 
+  onClose, 
+  onSave, 
+  onDelete, 
+  appointmentToEdit, 
+  mode = 'geral', 
+  disciplinesList = [],
+  showDisciplinesCard,
+  setShowDisciplinesCard
+}) {
   const getTodayIso = () => {
     const today = new Date()
     const y = today.getFullYear()
@@ -59,7 +69,6 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
 
   useEffect(() => {
     if (appointmentToEdit) {
-      // ⚠️ Verifica se realmente possui um ID salvo no MongoDB
       const hasRealId = Boolean(appointmentToEdit.id || appointmentToEdit._id)
 
       setFormData({
@@ -78,8 +87,6 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
         examWeight: appointmentToEdit.examWeight || '30%'
       })
 
-      // Se for um registro existente no banco (hasRealId === true), abre na tela de detalhes.
-      // Caso contrário (novo compromisso pré-preenchido apenas com a data), abre DIRETO no formulário de inclusão!
       setIsEditing(!hasRealId)
     } else {
       setFormData({
@@ -271,6 +278,22 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
                         </select>
                       </div>
                     </div>
+
+                    {/* Checkbox para alternar a exibição do Card de Disciplinas */}
+                    {setShowDisciplinesCard && (
+                      <div className="form-check form-switch mb-3 p-2 bg-light rounded border ps-5">
+                        <input 
+                          className="form-check-input ms-n4" 
+                          type="checkbox" 
+                          id="toggleDisciplinesCard"
+                          checked={showDisciplinesCard}
+                          onChange={(e) => setShowDisciplinesCard(e.target.checked)}
+                        />
+                        <label className="form-check-label fw-semibold text-dark cursor-pointer" htmlFor="toggleDisciplinesCard">
+                          <i className="bi bi-mortarboard-fill text-primary me-1"></i> Exibir painel de Disciplinas na página principal
+                        </label>
+                      </div>
+                    )}
 
                     {/* CAMPOS ESPECÍFICOS DE AVALIAÇÃO UFCSPA */}
                     {formData.category === 'AVALIAÇÃO UFCSPA' ? (

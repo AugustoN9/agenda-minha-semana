@@ -50,6 +50,9 @@ function App() {
   const [modalMode, setModalMode] = useState('geral')
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   
+  // Estado para controlar a visibilidade do Card de Disciplinas (Oculto por padrão)
+  const [showDisciplinesCard, setShowDisciplinesCard] = useState(false)
+
   // Data selecionada no calendário
   const [selectedDate, setSelectedDate] = useState(new Date())
 
@@ -99,7 +102,6 @@ function App() {
   const activeMonth = selectedDate.getMonth()
   const activeSemester = `${activeYear}/${activeMonth >= 7 ? '2' : '1'}`
 
-  // Abre o formulário de criação para uma data específica (via clique no DayCard / +)
   const handleOpenAddForDate = (isoDate) => {
     setSelectedAppointment({
       title: '',
@@ -133,7 +135,6 @@ function App() {
     setShowModal(true)
   }
 
-  // Apenas navega para a data clicada no Calendário (atualiza o bloco de 7 dias sem abrir modal)
   const handleSelectDateFromCalendar = (date) => {
     setSelectedDate(date)
   }
@@ -209,7 +210,6 @@ function App() {
     }
   }
 
-  // Gera os 7 dias dinâmicos: COMEÇANDO NO DIA SELECIONADO NO CALENDÁRIO + 6 SEGUINTES
   const getWeekDays = () => {
     const start = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
     const todayReal = new Date()
@@ -225,7 +225,7 @@ function App() {
       const iso = `${year}-${month}-${day}`
       const dateStr = `${day}/${month}/${String(year).slice(-2)}`
 
-      const isSelectedDay = i === 0 // O primeiro card é sempre a data selecionada no calendário
+      const isSelectedDay = i === 0
       const dZero = new Date(d)
       dZero.setHours(0, 0, 0, 0)
       const isPassed = dZero < todayReal
@@ -303,7 +303,6 @@ function App() {
             <CalendarWidget selectedDate={selectedDate} onSelectDate={handleSelectDateFromCalendar} />
           </div>
           <div className="col-12 col-lg-6">
-            {/* Card Principal do Dia Selecionado */}
             <DayCard 
               dayName={activeDayData.name}
               dateStr={activeDayData.dateStr}
@@ -324,14 +323,18 @@ function App() {
           </div>
         </div>
 
-        <DisciplinesCard 
-          activeSemester={activeSemester} 
-          disciplines={activeDisciplines} 
-          onAddDiscipline={handleOpenDisciplineModal}
-          onEditDiscipline={handleEditDiscipline}
-        />
+        {/* Exibe o Card de Disciplinas apenas se o estado showDisciplinesCard for true */}
+        {showDisciplinesCard && (
+          <div className="mb-3">
+            <DisciplinesCard 
+              activeSemester={activeSemester} 
+              disciplines={activeDisciplines} 
+              onAddDiscipline={handleOpenDisciplineModal}
+              onEditDiscipline={handleEditDiscipline}
+            />
+          </div>
+        )}
 
-        {/* Os 6 dias subsequentes */}
         <div className="row g-3">
           {weekDays.slice(1).map((dia) => (
             <div key={dia.iso} className="col-12 col-md-6">
@@ -365,6 +368,8 @@ function App() {
         onDelete={handleDelete}
         appointmentToEdit={selectedAppointment}
         disciplinesList={activeDisciplines}
+        showDisciplinesCard={showDisciplinesCard}
+        setShowDisciplinesCard={setShowDisciplinesCard}
       />
 
       <Footer />

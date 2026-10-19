@@ -1,7 +1,13 @@
 const mongoose = require('mongoose');
 
+const contactSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: String,
+  phone: String,
+  contactCategory: String // ex: 'Fornecedor de Luvas Médicas'
+});
+
 const appointmentSchema = new mongoose.Schema({
-  // Vínculo obrigatório com o utilizador autenticado via Google
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -16,29 +22,26 @@ const appointmentSchema = new mongoose.Schema({
   date: { 
     type: String, 
     required: [true, 'A data é obrigatória'] 
-  }, // Formato YYYY-MM-DD
+  },
   time: { 
     type: String, 
     required: [true, 'O horário de início é obrigatório'] 
-  }, // Formato HH:MM
+  },
   endTime: { 
     type: String, 
-    required: [true, 'O horário final é obrigatório'],
-    validate: {
-      validator: function(v) {
-        if (!this.time || !v) return true;
-        return v > this.time;
-      },
-      message: 'O horário final deve ser posterior ao horário inicial'
-    }
-  }, // Formato HH:MM
+    required: [true, 'O horário final é obrigatório']
+  },
   duration: { type: Number, default: 60 },
   location: String,
   phone: String,
 
+  // Campos específicos para ENVIO DE E-MAIL
+  shift: String, // 'Manhã', 'Tarde', 'Noite' ou 'Horário Específico'
+  contactsList: [contactSchema],
+
   // Campos específicos para ENSAIO FOTOGRÁFICO
-  photoShootType: String, // ex: 'Aniversário Infantil', 'Batizado', 'Newborn', etc.
-  clientName: String,     // Nome do contratante
+  photoShootType: String,
+  clientName: String,
 
   // Campos Acadêmicos UFCSPA
   semester: String,
@@ -48,11 +51,10 @@ const appointmentSchema = new mongoose.Schema({
 
   // Campos específicos para AVALIAÇÃO UFCSPA
   category: String,
-  relatedSubjectId: String, // ID ou Código da disciplina associada
-  examType: String,         // ex: 'AVALIAÇÃO 1', 'AVALIAÇÃO 2'
-  examWeight: String,       // ex: '30%'
+  relatedSubjectId: String,
+  examType: String,
+  examWeight: String,
 
-  // Flags, Status e Prioridade
   priority: { 
     type: String, 
     enum: ['SEM PRIORIDADE', 'BAIXA', 'MÉDIA', 'ALTA', 'MUITO ALTA'], 

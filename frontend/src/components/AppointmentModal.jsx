@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react'
 import Swal from 'sweetalert2'
 
+// Categorias ordenadas alfabeticamente
 const OPCOES_CATEGORIA = [
-  'OUTRO / GERAL',
-  'REUNIÃO',
-  'ENSAIO FOTOGRÁFICO',
   'ACADEMIA',
   'ANIVERSÁRIO',
   'AVALIAÇÃO UFCSPA',
   'CINEMA',
+  'ENSAIO FOTOGRÁFICO',
+  'ENVIO DE E-MAIL',
   'EVENTO',
   'EXAME LABORATORIAL',
   'EXAME MÉDICO',
   'FESTA / COMEMORAÇÃO',
   'HAPPY HOUR',
+  'OUTRO / GERAL',
   'PASSEIO',
+  'REUNIÃO',
   'VIAGEM'
-]
+].sort()
 
 const OPCOES_AVALIACAO = [
   'AVALIAÇÃO 1',
@@ -59,8 +61,8 @@ function AppointmentModal({
   const [formData, setFormData] = useState({
     title: '',
     date: getTodayIso(),
-    time: '18:20',
-    endTime: '20:00',
+    time: '09:00',
+    endTime: '10:00',
     location: '',
     building: '',
     room: '',
@@ -78,10 +80,11 @@ function AppointmentModal({
     photoShootType: 'Aniversário Infantil',
     clientName: '',
     phone: '',
+    shift: 'Manhã',
+    contactsList: [{ name: '', email: '', phone: '', contactCategory: '' }],
     isExam: false
   })
 
-  // ⚠️ FIX: Apenas reinicializa os dados quando o modal abre (show) ou quando o compromisso a editar muda
   useEffect(() => {
     if (!show) return
 
@@ -92,8 +95,8 @@ function AppointmentModal({
         ...appointmentToEdit,
         title: appointmentToEdit.title || '',
         date: appointmentToEdit.date || getTodayIso(),
-        time: appointmentToEdit.time || '',
-        endTime: appointmentToEdit.endTime || '',
+        time: appointmentToEdit.time || '09:00',
+        endTime: appointmentToEdit.endTime || '10:00',
         category: appointmentToEdit.category || (mode === 'disciplina' ? 'DISCIPLINA' : 'OUTRO / GERAL'),
         building: appointmentToEdit.building || '',
         room: appointmentToEdit.room || appointmentToEdit.location || '',
@@ -104,7 +107,11 @@ function AppointmentModal({
         examWeight: appointmentToEdit.examWeight || '30%',
         photoShootType: appointmentToEdit.photoShootType || 'Aniversário Infantil',
         clientName: appointmentToEdit.clientName || '',
-        phone: appointmentToEdit.phone || ''
+        phone: appointmentToEdit.phone || '',
+        shift: appointmentToEdit.shift || 'Manhã',
+        contactsList: appointmentToEdit.contactsList && appointmentToEdit.contactsList.length > 0
+          ? appointmentToEdit.contactsList
+          : [{ name: '', email: '', phone: '', contactCategory: '' }]
       })
 
       setIsEditing(!hasRealId)
@@ -112,8 +119,8 @@ function AppointmentModal({
       setFormData({
         title: '',
         date: getTodayIso(),
-        time: '18:20',
-        endTime: '20:00',
+        time: '09:00',
+        endTime: '10:00',
         location: '',
         building: '',
         room: '',
@@ -131,6 +138,8 @@ function AppointmentModal({
         photoShootType: 'Aniversário Infantil',
         clientName: '',
         phone: '',
+        shift: 'Manhã',
+        contactsList: [{ name: '', email: '', phone: '', contactCategory: '' }],
         isExam: false
       })
       setIsEditing(true)
@@ -138,6 +147,25 @@ function AppointmentModal({
   }, [show, appointmentToEdit])
 
   if (!show) return null
+
+  // Gestão de Contactos para Envio de E-mail
+  const handleAddContact = () => {
+    setFormData({
+      ...formData,
+      contactsList: [...formData.contactsList, { name: '', email: '', phone: '', contactCategory: '' }]
+    })
+  }
+
+  const handleRemoveContact = (index) => {
+    const updated = formData.contactsList.filter((_, i) => i !== index)
+    setFormData({ ...formData, contactsList: updated })
+  }
+
+  const handleContactChange = (index, field, value) => {
+    const updated = [...formData.contactsList]
+    updated[index][field] = value
+    setFormData({ ...formData, contactsList: updated })
+  }
 
   const calculateEndTime = (startTimeStr, periods, durationMinutes) => {
     if (!startTimeStr) return '00:00'
@@ -157,8 +185,12 @@ function AppointmentModal({
 
     let finalTitle = formData.title
 
-    // Monta título automático se for Ensaio Fotográfico e o título estiver vazio
-    if (formData.category === 'ENSAIO FOTOGRÁFICO') {
+    if (formData.category === 'ENVIO DE E-MAIL') {
+      if (!finalTitle.trim()) {
+        const firstContact = formData.contactsList[0]?.name || 'Contactos'
+        finalTitle = `Envio de E-mail - ${firstContact}`
+      }
+    } else if (formData.category === 'ENSAIO FOTOGRÁFICO') {
       if (!formData.clientName.trim()) {
         Swal.fire({
           icon: 'warning',
@@ -242,12 +274,13 @@ function AppointmentModal({
       <div className="modal-dialog modal-dialog-centered modal-lg">
         <div className="modal-content border-0 shadow rounded-4">
           
+          {/* Cabeçalho */}
           <div className="modal-header bg-light border-0">
             <h5 className="modal-title fw-bold text-dark m-0 d-flex align-items-center gap-2">
               {mode === 'disciplina' ? (
                 <><i className="bi bi-mortarboard-fill text-primary"></i> Disciplina UFCSPA</>
               ) : (
-                <><i className="bi bi-journal-text text-success"></i> Compromisso / Avaliação</>
+                <><i className="bi bi-journal-text text-success"></i> Compromisso a Agendar</>
               )}
             </h5>
             <button type="button" className="btn-close" onClick={onClose}></button>
@@ -258,18 +291,61 @@ function AppointmentModal({
             <div className="modal-body p-4">
               <div className="mb-3">
                 <h3 className="fw-bold text-dark mb-1">{formData.title}</h3>
-                <div className="d-flex gap-2 align-items-center mt-2">
+                <div className="d-flex gap-2 align-items-center mt-2 flex-wrap">
                   <span className="badge bg-light text-dark border">{formData.category}</span>
-                  {formData.photoShootType && (
-                    <span className="badge bg-info text-dark">{formData.photoShootType}</span>
+                  {formData.shift && formData.category === 'ENVIO DE E-MAIL' && (
+                    <span className="badge bg-primary text-white">Turno: {formData.shift}</span>
                   )}
-                  {formData.examWeight && (
-                    <span className="badge bg-danger text-white">Peso: {formData.examWeight}</span>
+                  {formData.photoShootType && formData.category === 'ENSAIO FOTOGRÁFICO' && (
+                    <span className="badge bg-info text-dark">{formData.photoShootType}</span>
                   )}
                 </div>
               </div>
 
-              {formData.clientName && (
+              {/* LISTA DE CONTACTOS DE E-MAIL COM CHAMADA DIRETA */}
+              {formData.category === 'ENVIO DE E-MAIL' && formData.contactsList?.length > 0 && (
+                <div className="p-3 bg-light rounded-3 border mb-3">
+                  <h6 className="fw-bold text-dark mb-3">
+                    <i className="bi bi-people-fill me-2 text-primary"></i> 
+                    Destinatários para Envio
+                  </h6>
+
+                  <div className="d-flex flex-column gap-2">
+                    {formData.contactsList.map((c, i) => (
+                      <div key={i} className="p-3 bg-white rounded border d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                          <div className="fw-bold text-dark">
+                            {c.name}
+                            {c.contactCategory && (
+                              <span className="badge bg-secondary-subtle text-secondary border ms-2" style={{ fontSize: '0.7rem' }}>
+                                {c.contactCategory}
+                              </span>
+                            )}
+                          </div>
+                          <div className="small text-muted mt-1">
+                            {c.email && <span className="me-3"><i className="bi bi-envelope me-1"></i>{c.email}</span>}
+                            {c.phone && <span><i className="bi bi-whatsapp me-1 text-success"></i>{c.phone}</span>}
+                          </div>
+                        </div>
+
+                        {c.email && (
+                          <a 
+                            href={`mailto:${c.email}?subject=${encodeURIComponent(formData.title || 'Envio de E-mail')}`}
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="btn btn-sm btn-outline-primary fw-semibold d-flex align-items-center gap-1"
+                          >
+                            <i className="bi bi-send-fill"></i> Escrever E-mail
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* DETALHES DE ENSAIO FOTOGRÁFICO */}
+              {formData.category === 'ENSAIO FOTOGRÁFICO' && formData.clientName && (
                 <div className="p-3 bg-light rounded mb-3">
                   <p className="m-0"><strong>Contratante:</strong> {formData.clientName}</p>
                   {formData.phone && <p className="m-0"><strong>WhatsApp/Tel:</strong> {formData.phone}</p>}
@@ -277,18 +353,20 @@ function AppointmentModal({
               )}
 
               <div className="row g-3 py-3 border-top border-bottom my-3">
-                <div className="col-6 col-md-3">
+                <div className="col-6 col-md-4">
                   <small className="text-muted d-block">Data</small>
                   <strong className="fs-6">{formData.date}</strong>
                 </div>
-                <div className="col-6 col-md-3">
+                <div className="col-6 col-md-4">
                   <small className="text-muted d-block">Horário</small>
                   <strong className="fs-6">{formData.time} - {formData.endTime}</strong>
                 </div>
-                <div className="col-6 col-md-3">
-                  <small className="text-muted d-block">Local</small>
-                  <strong className="fs-6">{formData.room || formData.location || 'Não informado'}</strong>
-                </div>
+                {formData.location && (
+                  <div className="col-12 col-md-4">
+                    <small className="text-muted d-block">Local</small>
+                    <strong className="fs-6">{formData.location}</strong>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -327,7 +405,6 @@ function AppointmentModal({
                       </div>
                     </div>
 
-                    {/* Switch para exibir/ocultar o painel de Disciplinas */}
                     {setShowDisciplinesCard && (
                       <div className="form-check form-switch mb-3 p-2 bg-light rounded border ps-5">
                         <input 
@@ -343,8 +420,107 @@ function AppointmentModal({
                       </div>
                     )}
 
-                    {/* CAMPOS ESPECÍFICOS DE ENSAIO FOTOGRÁFICO */}
-                    {formData.category === 'ENSAIO FOTOGRÁFICO' ? (
+                    {/* CAMPOS ESPECÍFICOS PARA ENVIO DE E-MAIL */}
+                    {formData.category === 'ENVIO DE E-MAIL' ? (
+                      <div className="p-3 bg-light rounded-3 border mb-3">
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                          <h6 className="fw-bold text-primary m-0">
+                            <i className="bi bi-envelope-at-fill me-2"></i>
+                            Tarefa de Envio de E-mail
+                          </h6>
+                          <select 
+                            className="form-select form-select-sm w-auto fw-semibold border-primary"
+                            value={formData.shift}
+                            onChange={(e) => setFormData({...formData, shift: e.target.value})}
+                          >
+                            <option value="Manhã">🌅 Turno Manhã</option>
+                            <option value="Tarde">☀️ Turno Tarde</option>
+                            <option value="Noite">🌙 Turno Noite</option>
+                          </select>
+                        </div>
+
+                        <div className="mb-3">
+                          <label className="form-label fw-semibold">Assunto / Título do E-mail</label>
+                          <input 
+                            type="text" 
+                            className="form-control" 
+                            placeholder="Ex: Cotação de Luvas Médicas - Lote Outubro"
+                            value={formData.title}
+                            onChange={(e) => setFormData({...formData, title: e.target.value})}
+                          />
+                        </div>
+
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <label className="form-label fw-semibold m-0">Contactos para Envio</label>
+                          <button 
+                            type="button" 
+                            className="btn btn-sm btn-outline-primary rounded-circle p-0 d-flex align-items-center justify-content-center" 
+                            style={{ width: '28px', height: '28px' }}
+                            onClick={handleAddContact}
+                            title="Adicionar Contacto"
+                          >
+                            <i className="bi bi-plus-lg"></i>
+                          </button>
+                        </div>
+
+                        {formData.contactsList.map((contact, index) => (
+                          <div key={index} className="p-2 mb-2 bg-white rounded border position-relative">
+                            {formData.contactsList.length > 1 && (
+                              <button 
+                                type="button" 
+                                className="btn-close position-absolute top-0 end-0 m-2"
+                                style={{ fontSize: '0.75rem' }}
+                                onClick={() => handleRemoveContact(index)}
+                              ></button>
+                            )}
+
+                            <div className="row g-2 mb-2">
+                              <div className="col-md-6">
+                                <input 
+                                  type="text" 
+                                  className="form-control form-control-sm" 
+                                  placeholder="Nome do Contacto *"
+                                  required
+                                  value={contact.name}
+                                  onChange={(e) => handleContactChange(index, 'name', e.target.value)}
+                                />
+                              </div>
+                              <div className="col-md-6">
+                                <input 
+                                  type="email" 
+                                  className="form-control form-control-sm" 
+                                  placeholder="E-mail *"
+                                  value={contact.email}
+                                  onChange={(e) => handleContactChange(index, 'email', e.target.value)}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="row g-2">
+                              <div className="col-md-6">
+                                <input 
+                                  type="text" 
+                                  className="form-control form-control-sm" 
+                                  placeholder="WhatsApp / Telefone"
+                                  value={contact.phone}
+                                  onChange={(e) => handleContactChange(index, 'phone', e.target.value)}
+                                />
+                              </div>
+                              <div className="col-md-6">
+                                <input 
+                                  type="text" 
+                                  className="form-control form-control-sm" 
+                                  placeholder="Categoria (ex: Fornecedor Luvas Médicas)"
+                                  value={contact.contactCategory}
+                                  onChange={(e) => handleContactChange(index, 'contactCategory', e.target.value)}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : formData.category === 'ENSAIO FOTOGRÁFICO' ? (
+                      /* CAMPOS ESPECÍFICOS DE ENSAIO FOTOGRÁFICO */
                       <div className="p-3 bg-light rounded-3 border mb-3">
                         <h6 className="fw-bold text-success mb-3">
                           <i className="bi bi-camera-fill me-2"></i>
@@ -588,52 +764,6 @@ function AppointmentModal({
                         </select>
                       </div>
                     </div>
-
-                    <div className="row g-3 mb-3">
-                      <div className="col-md-6">
-                        <label className="form-label fw-semibold">Prédio</label>
-                        <input 
-                          type="text" 
-                          className="form-control" 
-                          value={formData.building || ''}
-                          onChange={(e) => setFormData({...formData, building: e.target.value})}
-                        />
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label fw-semibold">Sala</label>
-                        <input 
-                          type="text" 
-                          className="form-control" 
-                          value={formData.room || ''}
-                          onChange={(e) => setFormData({...formData, room: e.target.value})}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="row g-3">
-                      <div className="col-md-7">
-                        <label className="form-label fw-semibold">Professor(a)</label>
-                        <input 
-                          type="text" 
-                          className="form-control" 
-                          value={formData.professor || ''}
-                          onChange={(e) => setFormData({...formData, professor: e.target.value})}
-                        />
-                      </div>
-                      <div className="col-md-5">
-                        <label className="form-label fw-semibold">Semestre Letivo</label>
-                        <select 
-                          className="form-select"
-                          value={formData.semester || '2026/2'}
-                          onChange={(e) => setFormData({...formData, semester: e.target.value})}
-                        >
-                          <option value="2026/1">2026/1</option>
-                          <option value="2026/2">2026/2</option>
-                          <option value="2027/1">2027/1</option>
-                          <option value="2027/2">2027/2</option>
-                        </select>
-                      </div>
-                    </div>
                   </>
                 )}
               </div>
@@ -642,7 +772,7 @@ function AppointmentModal({
                 <button type="button" className="btn btn-outline-secondary" onClick={onClose}>
                   Cancelar
                 </button>
-                <button type="submit" className={`btn ${mode === 'geral' ? 'btn-success' : 'btn-primary'} px-4`}>
+                <button type="submit" className="btn btn-success px-4">
                   Salvar
                 </button>
               </div>

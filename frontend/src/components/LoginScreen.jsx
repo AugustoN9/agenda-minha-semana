@@ -39,7 +39,7 @@ function LoginScreen({ user, onLoginSuccess, onLogout }) {
         </div>
         <h3 className="fw-bold text-dark mb-1">APP Minha Semana</h3>
         <p className="text-muted small mb-4">
-          Acesse com sua conta do Google para gerenciar sua rotina acadêmica, disciplinas e avaliações.
+          Acesse com sua conta do Google para gerenciar sua rotina organizando sua semana.
         </p>
         
         <div className="d-flex justify-content-center">

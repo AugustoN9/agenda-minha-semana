@@ -40,7 +40,6 @@ const checkTimeConflict = (newApp, existingAppointments) => {
 }
 
 function App() {
-  // Estado de Autenticação do Utilizador
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('user')
     return savedUser ? JSON.parse(savedUser) : null
@@ -51,10 +50,9 @@ function App() {
   const [modalMode, setModalMode] = useState('geral')
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   
-  // Data inicial selecionada no calendário
+  // Data selecionada no calendário
   const [selectedDate, setSelectedDate] = useState(new Date())
 
-  // Configuração do cabeçalho com Token JWT extraído diretamente do LocalStorage
   const getAuthConfig = () => {
     const token = localStorage.getItem('token')
     return token ? { headers: { Authorization: `Bearer ${token}` } } : {}
@@ -85,9 +83,9 @@ function App() {
   }, [user])
 
   const handleLoginSuccess = (userData) => {
-    setAgendamentos([]) // Zeramos a lista do usuário anterior no estado
+    setAgendamentos([])
     setUser(userData)
-    fetchAgendamentos() // Busca os dados atualizados para o novo usuário logado
+    fetchAgendamentos()
   }
 
   const handleLogout = () => {
@@ -100,6 +98,22 @@ function App() {
   const activeYear = selectedDate.getFullYear()
   const activeMonth = selectedDate.getMonth()
   const activeSemester = `${activeYear}/${activeMonth >= 7 ? '2' : '1'}`
+
+  // Abre o formulário de criação para uma data específica (via clique no DayCard / +)
+  const handleOpenAddForDate = (isoDate) => {
+    setSelectedAppointment({
+      title: '',
+      category: 'OUTRO / GERAL',
+      priority: 'SEM PRIORIDADE',
+      date: isoDate,
+      time: '',
+      endTime: '',
+      location: '',
+      description: ''
+    })
+    setModalMode('geral')
+    setShowModal(true)
+  }
 
   const handleOpenGeralModal = (app = null) => {
     setSelectedAppointment(app)
@@ -117,6 +131,11 @@ function App() {
     setSelectedAppointment(disc)
     setModalMode('disciplina')
     setShowModal(true)
+  }
+
+  // Apenas navega para a data clicada no Calendário (atualiza o bloco de 7 dias sem abrir modal)
+  const handleSelectDateFromCalendar = (date) => {
+    setSelectedDate(date)
   }
 
   const handleSaveAppointment = async (formData) => {
@@ -190,22 +209,15 @@ function App() {
     }
   }
 
-  // Monta os 7 dias da semana COMEÇANDO NA SEGUNDA-FEIRA
+  // Gera os 7 dias dinâmicos: COMEÇANDO NO DIA SELECIONADO NO CALENDÁRIO + 6 SEGUINTES
   const getWeekDays = () => {
-    const current = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
-    const dayOfWeek = current.getDay()
-    
-    const distanceToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-
-    const monday = new Date(current)
-    monday.setDate(current.getDate() - distanceToMonday)
-
+    const start = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
     const todayReal = new Date()
     todayReal.setHours(0, 0, 0, 0)
 
     return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday)
-      d.setDate(monday.getDate() + i)
+      const d = new Date(start)
+      d.setDate(start.getDate() + i)
 
       const year = d.getFullYear()
       const month = String(d.getMonth() + 1).padStart(2, '0')
@@ -213,7 +225,7 @@ function App() {
       const iso = `${year}-${month}-${day}`
       const dateStr = `${day}/${month}/${String(year).slice(-2)}`
 
-      const isSelectedDay = d.toDateString() === selectedDate.toDateString()
+      const isSelectedDay = i === 0 // O primeiro card é sempre a data selecionada no calendário
       const dZero = new Date(d)
       dZero.setHours(0, 0, 0, 0)
       const isPassed = dZero < todayReal
@@ -230,7 +242,6 @@ function App() {
     })
   }
 
-  // --- TELA DE BLOQUEIO / LOGIN (GATEKEEPER) ---
   if (!user) {
     return (
       <LoginScreen 
@@ -241,9 +252,8 @@ function App() {
     )
   }
 
-  // --- APLICAÇÃO PRINCIPAL (SÓ EXIBE SE AUTENTICADO) ---
   const weekDays = getWeekDays()
-  const activeDayData = weekDays.find(d => d.isSelectedDay) || weekDays[0]
+  const activeDayData = weekDays[0]
 
   const getAppointmentsForDay = (dia) => {
     return agendamentos.filter((a) => {
@@ -290,9 +300,10 @@ function App() {
 
         <div className="row g-3 mb-3">
           <div className="col-12 col-lg-6">
-            <CalendarWidget selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+            <CalendarWidget selectedDate={selectedDate} onSelectDate={handleSelectDateFromCalendar} />
           </div>
           <div className="col-12 col-lg-6">
+            {/* Card Principal do Dia Selecionado */}
             <DayCard 
               dayName={activeDayData.name}
               dateStr={activeDayData.dateStr}
@@ -300,6 +311,7 @@ function App() {
               isToday={activeDayData.isSelectedDay}
               appointments={getAppointmentsForDay(activeDayData)}
               allAppointments={agendamentos}
+              onAddNew={() => handleOpenAddForDate(activeDayData.iso)}
               onEdit={(item) => {
                 if (item.subjectCode) {
                   handleEditDiscipline(item)
@@ -319,17 +331,18 @@ function App() {
           onEditDiscipline={handleEditDiscipline}
         />
 
+        {/* Os 6 dias subsequentes */}
         <div className="row g-3">
-          {weekDays.filter(d => !d.isSelectedDay).map((dia) => (
-            <div key={dia.name} className="col-12 col-md-6">
+          {weekDays.slice(1).map((dia) => (
+            <div key={dia.iso} className="col-12 col-md-6">
               <DayCard 
                 dayName={dia.name}
                 dateStr={dia.dateStr}
                 isoDate={dia.iso}
                 isPassed={dia.isPassed}
-                holidayName={dia.holiday}
                 appointments={getAppointmentsForDay(dia)}
                 allAppointments={agendamentos}
+                onAddNew={() => handleOpenAddForDate(dia.iso)}
                 onEdit={(item) => {
                   if (item.subjectCode) {
                     handleEditDiscipline(item)

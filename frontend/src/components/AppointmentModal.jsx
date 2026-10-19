@@ -59,8 +59,16 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
 
   useEffect(() => {
     if (appointmentToEdit) {
+      // ⚠️ Verifica se realmente possui um ID salvo no MongoDB
+      const hasRealId = Boolean(appointmentToEdit.id || appointmentToEdit._id)
+
       setFormData({
         ...appointmentToEdit,
+        title: appointmentToEdit.title || '',
+        date: appointmentToEdit.date || getTodayIso(),
+        time: appointmentToEdit.time || '',
+        endTime: appointmentToEdit.endTime || '',
+        category: appointmentToEdit.category || (mode === 'disciplina' ? 'DISCIPLINA' : 'OUTRO / GERAL'),
         building: appointmentToEdit.building || '',
         room: appointmentToEdit.room || appointmentToEdit.location || '',
         periodDuration: appointmentToEdit.periodDuration || '50',
@@ -69,7 +77,10 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
         examType: appointmentToEdit.examType || 'AVALIAÇÃO 1',
         examWeight: appointmentToEdit.examWeight || '30%'
       })
-      setIsEditing(false)
+
+      // Se for um registro existente no banco (hasRealId === true), abre na tela de detalhes.
+      // Caso contrário (novo compromisso pré-preenchido apenas com a data), abre DIRETO no formulário de inclusão!
+      setIsEditing(!hasRealId)
     } else {
       setFormData({
         title: '',
@@ -226,7 +237,7 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
               </div>
             </div>
           ) : (
-            /* FORMULÁRIO DE EDIÇÃO / CRIAÇÃO */
+            /* FORMULÁRIO DE EDIÇÃO / CRIAÇÃO DIRECTO */
             <form onSubmit={handleSubmit}>
               <div className="modal-body p-4">
                 {mode === 'geral' ? (
@@ -498,7 +509,7 @@ function AppointmentModal({ show, onClose, onSave, onDelete, appointmentToEdit, 
               </div>
 
               <div className="modal-footer bg-light border-0">
-                <button type="button" className="btn btn-outline-secondary" onClick={() => setIsEditing(false)}>
+                <button type="button" className="btn btn-outline-secondary" onClick={onClose}>
                   Cancelar
                 </button>
                 <button type="submit" className={`btn ${mode === 'geral' ? 'btn-success' : 'btn-primary'} px-4`}>

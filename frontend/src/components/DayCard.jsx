@@ -9,6 +9,7 @@ function DayCard({
   holidayName, 
   appointments = [], 
   allAppointments = [],
+  onAddNew,
   onEdit, 
   onToggleComplete 
 }) {
@@ -91,7 +92,15 @@ function DayCard({
   const processedList = processAppointments()
 
   return (
-    <div className={`card shadow-sm border-0 rounded-3 h-100 bg-white ${isToday ? 'border-start border-success border-4' : ''}`}>
+    <div 
+      className={`card shadow-sm border-0 rounded-3 h-100 bg-white ${isToday ? 'border-start border-success border-4' : ''}`}
+      style={{ cursor: 'pointer' }}
+      onClick={(e) => {
+        // Se o clique não foi em um item/botão/checkbox interno, abre o modal para adicionar no dia
+        if (e.target.closest('.appointment-item') || e.target.closest('button') || e.target.closest('input')) return
+        if (onAddNew) onAddNew()
+      }}
+    >
       <div className="card-header bg-white border-bottom-0 pt-3 px-3 pb-0 d-flex justify-content-between align-items-center">
         <div>
           <span className={`fw-bold fs-5 ${isPassed ? 'text-secondary' : 'text-dark'}`}>{dayName}</span>
@@ -103,7 +112,21 @@ function DayCard({
             </small>
           )}
         </div>
-        <span className={`fw-bold small ${isPassed ? 'text-muted' : 'text-dark'}`}>{dateStr}</span>
+
+        <div className="d-flex align-items-center gap-2">
+          <span className={`fw-bold small ${isPassed ? 'text-muted' : 'text-dark'}`}>{dateStr}</span>
+          <button 
+            className="btn btn-sm btn-outline-success rounded-circle d-flex align-items-center justify-content-center p-0"
+            style={{ width: '28px', height: '28px' }}
+            onClick={(e) => {
+              e.stopPropagation()
+              if (onAddNew) onAddNew()
+            }}
+            title="Adicionar compromisso neste dia"
+          >
+            <i className="bi bi-plus-lg"></i>
+          </button>
+        </div>
       </div>
 
       <div className="card-body px-3 pb-3 pt-2">
@@ -119,7 +142,7 @@ function DayCard({
             {isToday ? (
               <span className="fw-semibold text-success fs-6">🎉 Dia livre aproveite!</span>
             ) : (
-              <span className="small">Nenhum compromisso agendado</span>
+              <span className="small">Nenhum compromisso agendado. Clique para adicionar.</span>
             )}
           </div>
         ) : (
@@ -129,8 +152,11 @@ function DayCard({
             return (
               <div 
                 key={item.subKey} 
-                onClick={() => onEdit(item.activeEvaluation || item)}
-                className={`d-flex align-items-center justify-content-between py-2 px-2 my-1 rounded border-bottom last-border-0 cursor-pointer ${
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit(item.activeEvaluation || item)
+                }}
+                className={`appointment-item d-flex align-items-center justify-content-between py-2 px-2 my-1 rounded border-bottom last-border-0 ${
                   isCompleted ? 'opacity-50 bg-light' : 'bg-hover-light'
                 }`}
                 style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}

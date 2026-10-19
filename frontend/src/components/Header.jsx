@@ -9,7 +9,7 @@ function Header({ onOpenModal, user, onLoginSuccess, onLogout }) {
           <i className="bi bi-calendar-event-fill text-success"></i>
           Minha Semana
         </h2>
-        <small className="text-muted">Agenda Acadêmica UFCSPA</small>
+        <small className="text-muted">Agenda para Organização Semanal</small>
       </div>
 
       <div className="d-flex align-items-center gap-3">

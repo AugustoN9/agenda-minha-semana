@@ -1,121 +1,122 @@
 import React from 'react'
 
-const MESES = [
-  'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
-  'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
-]
-
-const CORES_MESES = [
-  'linear-gradient(135deg, #2b5876 0%, #4e4376 100%)',
-  'linear-gradient(135deg, #ff0844 0%, #ffb199 100%)',
-  'linear-gradient(135deg, #00b09b 0%, #96c93d 100%)',
-  'linear-gradient(135deg, #4ac29a 0%, #bdfff3 100%)',
-  'linear-gradient(135deg, #f857a6 0%, #ff5858 100%)',
-  'linear-gradient(135deg, #ff9966 0%, #ff5e62 100%)',
-  'linear-gradient(135deg, #56ccf2 0%, #2f80ed 100%)',
-  'linear-gradient(135deg, #f2994a 0%, #f2c94c 100%)',
-  'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
-  'linear-gradient(135deg, #20c997 0%, #198754 100%)',
-  'linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)',
-  'linear-gradient(135deg, #e52d27 0%, #b31217 100%)'
-]
-
-function CalendarWidget({ selectedDate, onSelectDate }) {
+function CalendarWidget({ selectedDate, onSelectDate, appointments = [] }) {
   const year = selectedDate.getFullYear()
   const month = selectedDate.getMonth()
-  const todayNum = selectedDate.getDate()
 
-  const handleMonthChange = (offset) => {
-    const newDate = new Date(selectedDate)
-    newDate.setMonth(month + offset)
-    onSelectDate(newDate)
+  const MONTH_NAMES = [
+    'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
+    'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
+  ]
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const firstDayOfWeek = new Date(year, month, 1).getDay()
+
+  const handlePrevMonth = () => {
+    const prev = new Date(year, month - 1, 1)
+    onSelectDate(prev)
   }
 
-  const firstDayOfMonth = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const handleNextMonth = () => {
+    const next = new Date(year, month + 1, 1)
+    onSelectDate(next)
+  }
 
-  const calendarDays = []
-  for (let i = 0; i < firstDayOfMonth; i++) calendarDays.push(null)
-  for (let i = 1; i <= daysInMonth; i++) calendarDays.push(i)
+  const getDayPriorityStatus = (dayNum) => {
+    const monthStr = String(month + 1).padStart(2, '0')
+    const dayStr = String(dayNum).padStart(2, '0')
+    const isoDate = `${year}-${monthStr}-${dayStr}`
 
-  const backgroundAtual = CORES_MESES[month] || CORES_MESES[0]
+    const dayApps = appointments.filter(a => a.date === isoDate && !a.isCompleted)
+
+    const hasMuitoAlta = dayApps.some(a => a.priority === 'MUITO ALTA')
+    if (hasMuitoAlta) return 'MUITO ALTA'
+
+    const hasAlta = dayApps.some(a => a.priority === 'ALTA')
+    if (hasAlta) return 'ALTA'
+
+    return null
+  }
+
+  const renderDays = () => {
+    const days = []
+
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      days.push(
+        <div key={`empty-${i}`} style={{ width: '14.28%' }} className="text-center p-1"></div>
+      )
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const isSelected = selectedDate.getDate() === d && selectedDate.getMonth() === month && selectedDate.getFullYear() === year
+      const priorityStatus = getDayPriorityStatus(d)
+
+      let priorityClass = ''
+      if (!isSelected) {
+        if (priorityStatus === 'MUITO ALTA') {
+          priorityClass = 'bg-danger text-white rounded-3 fw-bold shadow-sm'
+        } else if (priorityStatus === 'ALTA') {
+          priorityClass = 'bg-warning text-dark border border-warning-subtle rounded-3 fw-bold shadow-sm'
+        }
+      }
+
+      days.push(
+        <div 
+          key={d} 
+          onClick={() => onSelectDate(new Date(year, month, d))}
+          className="d-flex align-items-center justify-content-center p-1"
+          style={{ width: '14.28%', cursor: 'pointer' }}
+        >
+          <div 
+            className={`d-flex align-items-center justify-content-center fw-semibold ${
+              isSelected 
+                ? 'bg-dark text-white rounded-circle shadow-sm' 
+                : priorityClass
+            }`}
+            style={{ width: '32px', height: '32px', fontSize: '0.85rem', transition: 'all 0.2s ease' }}
+          >
+            {d}
+          </div>
+        </div>
+      )
+    }
+
+    return days
+  }
+
+  const weekHeaders = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
   return (
-    <div className="card shadow-sm border-0 rounded-4 overflow-hidden bg-white h-100">
+    <div className="card border-0 shadow-sm rounded-4 overflow-hidden bg-white h-100">
       <div className="row g-0 h-100">
         
-        <div 
-          className="col-12 col-md-5 text-white p-4 d-flex flex-column justify-content-between text-center min-vh-25"
-          style={{ 
-            background: backgroundAtual,
-            transition: 'background 0.4s ease-in-out'
-          }}
-        >
-          <div className="fs-5 fw-bold opacity-90">{year}</div>
-          
-          <div className="my-auto py-2">
-            <span className="fw-bolder display-1 d-block lh-1" style={{ fontSize: '4.5rem', letterSpacing: '-2px' }}>
-              {todayNum}
-            </span>
+        {/* Painel Esquerdo com Destaque do Dia */}
+        <div className="col-5 bg-success text-white p-3 d-flex flex-column justify-content-between">
+          <div className="fs-5 fw-bold opacity-75">{year}</div>
+          <div className="display-1 fw-bold text-center my-auto">
+            {selectedDate.getDate()}
           </div>
-
-          <div className="d-flex justify-content-between align-items-center fw-bold fs-6 pt-2 border-top border-white border-opacity-25">
-            <button onClick={() => handleMonthChange(-1)} className="btn btn-link text-white p-0 shadow-none">
+          <div className="d-flex align-items-center justify-content-between pt-2 border-top border-white border-opacity-25">
+            <button className="btn btn-sm text-white p-0" onClick={handlePrevMonth}>
               <i className="bi bi-chevron-left fs-5"></i>
             </button>
-            <span className="small tracking-wider">{MESES[month]}</span>
-            <button onClick={() => handleMonthChange(1)} className="btn btn-link text-white p-0 shadow-none">
+            <span className="fw-bold extra-small">{MONTH_NAMES[month]}</span>
+            <button className="btn btn-sm text-white p-0" onClick={handleNextMonth}>
               <i className="bi bi-chevron-right fs-5"></i>
             </button>
           </div>
         </div>
 
-        <div className="col-12 col-md-7 p-3 p-xl-4 d-flex flex-column justify-content-center">
-          <div 
-            style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(7, 1fr)', 
-              textAlign: 'center' 
-            }} 
-            className="fw-bold text-muted small mb-2"
-          >
-            <div>Dom</div>
-            <div>Seg</div>
-            <div>Ter</div>
-            <div>Qua</div>
-            <div>Qui</div>
-            <div>Sex</div>
-            <div>Sáb</div>
+        {/* Grade do Calendário */}
+        <div className="col-7 p-3 d-flex flex-column justify-content-center">
+          <div className="d-flex text-center fw-bold text-muted extra-small mb-2">
+            {weekHeaders.map(day => (
+              <div key={day} style={{ width: '14.28%' }}>{day}</div>
+            ))}
           </div>
 
-          <div 
-            style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(7, 1fr)', 
-              rowGap: '6px', 
-              justifyItems: 'center', 
-              alignItems: 'center' 
-            }}
-          >
-            {calendarDays.map((day, idx) => {
-              if (!day) return <div key={idx} style={{ width: '32px', height: '32px' }}></div>
-
-              const isSelected = day === todayNum
-              return (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    const newD = new Date(year, month, day)
-                    onSelectDate(newD)
-                  }}
-                  className={`btn calendar-day-btn border-0 d-flex justify-content-center align-items-center ${
-                    isSelected ? 'active-day' : 'text-dark fw-medium'
-                  }`}
-                >
-                  {day}
-                </button>
-              )
-            })}
+          <div className="d-flex flex-wrap align-items-center">
+            {renderDays()}
           </div>
         </div>
 

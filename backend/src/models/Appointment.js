@@ -36,6 +36,10 @@ const appointmentSchema = new mongoose.Schema({
   location: String,
   phone: String,
 
+  // Campos específicos para ENSAIO FOTOGRÁFICO
+  photoShootType: String, // ex: 'Aniversário Infantil', 'Batizado', 'Newborn', etc.
+  clientName: String,     // Nome do contratante
+
   // Campos Acadêmicos UFCSPA
   semester: String,
   subjectCode: String,

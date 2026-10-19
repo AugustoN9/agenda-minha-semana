@@ -3,6 +3,8 @@ import Swal from 'sweetalert2'
 
 const OPCOES_CATEGORIA = [
   'OUTRO / GERAL',
+  'REUNIÃO',
+  'ENSAIO FOTOGRÁFICO',
   'ACADEMIA',
   'ANIVERSÁRIO',
   'AVALIAÇÃO UFCSPA',
@@ -23,6 +25,15 @@ const OPCOES_AVALIACAO = [
   'AVALIAÇÃO 4',
   'EXAME FINAL',
   'RECUPERAÇÃO'
+]
+
+const OPCOES_ENSAIO = [
+  'Aniversário Infantil',
+  'Batizado',
+  'Newborn',
+  'Ensaio Praça',
+  'Temático',
+  'Formatura'
 ]
 
 function AppointmentModal({ 
@@ -64,10 +75,16 @@ function AppointmentModal({
     relatedSubjectId: '',
     examType: 'AVALIAÇÃO 1',
     examWeight: '30%',
+    photoShootType: 'Aniversário Infantil',
+    clientName: '',
+    phone: '',
     isExam: false
   })
 
+  // ⚠️ FIX: Apenas reinicializa os dados quando o modal abre (show) ou quando o compromisso a editar muda
   useEffect(() => {
+    if (!show) return
+
     if (appointmentToEdit) {
       const hasRealId = Boolean(appointmentToEdit.id || appointmentToEdit._id)
 
@@ -84,7 +101,10 @@ function AppointmentModal({
         priority: appointmentToEdit.priority || 'SEM PRIORIDADE',
         relatedSubjectId: appointmentToEdit.relatedSubjectId || (disciplinesList[0]?.id || disciplinesList[0]?._id || ''),
         examType: appointmentToEdit.examType || 'AVALIAÇÃO 1',
-        examWeight: appointmentToEdit.examWeight || '30%'
+        examWeight: appointmentToEdit.examWeight || '30%',
+        photoShootType: appointmentToEdit.photoShootType || 'Aniversário Infantil',
+        clientName: appointmentToEdit.clientName || '',
+        phone: appointmentToEdit.phone || ''
       })
 
       setIsEditing(!hasRealId)
@@ -108,11 +128,14 @@ function AppointmentModal({
         relatedSubjectId: disciplinesList[0]?.id || disciplinesList[0]?._id || '',
         examType: 'AVALIAÇÃO 1',
         examWeight: '30%',
+        photoShootType: 'Aniversário Infantil',
+        clientName: '',
+        phone: '',
         isExam: false
       })
       setIsEditing(true)
     }
-  }, [appointmentToEdit, show, mode, disciplinesList])
+  }, [show, appointmentToEdit])
 
   if (!show) return null
 
@@ -132,7 +155,23 @@ function AppointmentModal({
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    if (!formData.title.trim() && formData.category !== 'AVALIAÇÃO UFCSPA') {
+    let finalTitle = formData.title
+
+    // Monta título automático se for Ensaio Fotográfico e o título estiver vazio
+    if (formData.category === 'ENSAIO FOTOGRÁFICO') {
+      if (!formData.clientName.trim()) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Nome do Contratante',
+          text: 'Por favor, preencha o nome do contratante do ensaio.',
+          confirmButtonColor: '#10b981'
+        })
+        return
+      }
+      if (!finalTitle.trim()) {
+        finalTitle = `Ensaio ${formData.photoShootType} - ${formData.clientName}`
+      }
+    } else if (!formData.title.trim() && formData.category !== 'AVALIAÇÃO UFCSPA') {
       Swal.fire({
         icon: 'warning',
         title: 'Campos Incompletos',
@@ -143,7 +182,6 @@ function AppointmentModal({
     }
 
     let calculatedEnd = formData.endTime
-    let finalTitle = formData.title
 
     if (formData.category === 'AVALIAÇÃO UFCSPA') {
       if (!formData.relatedSubjectId) {
@@ -222,11 +260,21 @@ function AppointmentModal({
                 <h3 className="fw-bold text-dark mb-1">{formData.title}</h3>
                 <div className="d-flex gap-2 align-items-center mt-2">
                   <span className="badge bg-light text-dark border">{formData.category}</span>
+                  {formData.photoShootType && (
+                    <span className="badge bg-info text-dark">{formData.photoShootType}</span>
+                  )}
                   {formData.examWeight && (
                     <span className="badge bg-danger text-white">Peso: {formData.examWeight}</span>
                   )}
                 </div>
               </div>
+
+              {formData.clientName && (
+                <div className="p-3 bg-light rounded mb-3">
+                  <p className="m-0"><strong>Contratante:</strong> {formData.clientName}</p>
+                  {formData.phone && <p className="m-0"><strong>WhatsApp/Tel:</strong> {formData.phone}</p>}
+                </div>
+              )}
 
               <div className="row g-3 py-3 border-top border-bottom my-3">
                 <div className="col-6 col-md-3">
@@ -279,7 +327,7 @@ function AppointmentModal({
                       </div>
                     </div>
 
-                    {/* Checkbox para alternar a exibição do Card de Disciplinas */}
+                    {/* Switch para exibir/ocultar o painel de Disciplinas */}
                     {setShowDisciplinesCard && (
                       <div className="form-check form-switch mb-3 p-2 bg-light rounded border ps-5">
                         <input 
@@ -295,8 +343,67 @@ function AppointmentModal({
                       </div>
                     )}
 
-                    {/* CAMPOS ESPECÍFICOS DE AVALIAÇÃO UFCSPA */}
-                    {formData.category === 'AVALIAÇÃO UFCSPA' ? (
+                    {/* CAMPOS ESPECÍFICOS DE ENSAIO FOTOGRÁFICO */}
+                    {formData.category === 'ENSAIO FOTOGRÁFICO' ? (
+                      <div className="p-3 bg-light rounded-3 border mb-3">
+                        <h6 className="fw-bold text-success mb-3">
+                          <i className="bi bi-camera-fill me-2"></i>
+                          Detalhes do Ensaio Fotográfico
+                        </h6>
+
+                        <div className="row g-3 mb-3">
+                          <div className="col-md-6">
+                            <label className="form-label fw-semibold">Tipo de Ensaio *</label>
+                            <select 
+                              className="form-select border-success"
+                              value={formData.photoShootType}
+                              onChange={(e) => setFormData({...formData, photoShootType: e.target.value})}
+                            >
+                              {OPCOES_ENSAIO.map((tipo) => (
+                                <option key={tipo} value={tipo}>{tipo}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="col-md-6">
+                            <label className="form-label fw-semibold">Nome do Contratante *</label>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              required
+                              placeholder="Ex: Maria Silva"
+                              value={formData.clientName}
+                              onChange={(e) => setFormData({...formData, clientName: e.target.value})}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="row g-3 mb-3">
+                          <div className="col-md-6">
+                            <label className="form-label fw-semibold">Telefone / WhatsApp</label>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              placeholder="Ex: (51) 99999-8888"
+                              value={formData.phone}
+                              onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                            />
+                          </div>
+
+                          <div className="col-md-6">
+                            <label className="form-label fw-semibold">Título Personalizado (Opcional)</label>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              placeholder="Ex: Ensaio Marina - Orla"
+                              value={formData.title}
+                              onChange={(e) => setFormData({...formData, title: e.target.value})}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : formData.category === 'AVALIAÇÃO UFCSPA' ? (
+                      /* CAMPOS ESPECÍFICOS DE AVALIAÇÃO UFCSPA */
                       <div className="p-3 bg-light rounded-3 border mb-3">
                         <h6 className="fw-bold text-primary mb-3">
                           <i className="bi bi-file-earmark-check-fill me-2"></i>
@@ -407,7 +514,7 @@ function AppointmentModal({
                         className="form-control" 
                         value={formData.location || ''}
                         onChange={(e) => setFormData({...formData, location: e.target.value})}
-                        placeholder="Ex: Prédio 2 - Sala 304"
+                        placeholder="Ex: Prédio 2 - Sala 304, Parque Redenção"
                       />
                     </div>
                   </>

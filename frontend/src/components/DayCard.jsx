@@ -17,13 +17,12 @@ function DayCard({
   const processAppointments = () => {
     const list = []
 
-    // Identifica avaliações cadastradas especificamente para a data de hoje (YYYY-MM-DD)
+    // Identifica avaliações cadastradas especificamente para a data (YYYY-MM-DD)
     const evaluationsToday = allAppointments.filter(
       a => a.category === 'AVALIAÇÃO UFCSPA' && a.date === isoDate
     )
 
     appointments.forEach((app) => {
-      // Ignora o registro autônomo da avaliação para não duplicar linhas no card
       if (app.category === 'AVALIAÇÃO UFCSPA') return
 
       const periodsCount = parseInt(app.creditPeriods) || 1
@@ -52,7 +51,6 @@ function DayCard({
             timeFormatted: `${periodStartH}:${periodStartM} - ${periodEndH}:${periodEndM}`,
             periodIndex: i + 1,
             isDiscipline: true,
-            // Anexa a avaliação apenas no primeiro período da disciplina
             activeEvaluation: i === 0 ? evalForSub : null
           })
         }
@@ -96,7 +94,6 @@ function DayCard({
       className={`card shadow-sm border-0 rounded-3 h-100 bg-white ${isToday ? 'border-start border-success border-4' : ''}`}
       style={{ cursor: 'pointer' }}
       onClick={(e) => {
-        // Se o clique não foi em um item/botão/checkbox interno, abre o modal para adicionar no dia
         if (e.target.closest('.appointment-item') || e.target.closest('button') || e.target.closest('input')) return
         if (onAddNew) onAddNew()
       }}
@@ -108,7 +105,7 @@ function DayCard({
           
           {isToday && (
             <small className="d-block text-success fw-semibold mt-1">
-              Minhas Tarefas de Hoje
+              Minhas Tarefas do Dia Selecionado
             </small>
           )}
         </div>
@@ -156,42 +153,75 @@ function DayCard({
                   e.stopPropagation()
                   onEdit(item.activeEvaluation || item)
                 }}
-                className={`appointment-item d-flex align-items-center justify-content-between py-2 px-2 my-1 rounded border-bottom last-border-0 ${
+                className={`appointment-item py-2 px-2 my-1 rounded border-bottom last-border-0 ${
                   isCompleted ? 'opacity-50 bg-light' : 'bg-hover-light'
                 }`}
                 style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
               >
-                <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
-                  <div className={`badge ${isCompleted ? 'bg-secondary' : 'bg-dark'} text-white px-2 py-1 fw-bold rounded small flex-shrink-0`} style={{ fontSize: '0.75rem' }}>
-                    {item.timeFormatted}
+                <div className="d-flex align-items-center justify-content-between">
+                  <div className="d-flex align-items-center gap-2 overflow-hidden me-2 flex-wrap">
+                    {/* Badge de Horário */}
+                    <div className={`badge ${isCompleted ? 'bg-secondary' : 'bg-dark'} text-white px-2 py-1 fw-bold rounded small flex-shrink-0`} style={{ fontSize: '0.75rem' }}>
+                      {item.timeFormatted}
+                    </div>
+
+                    {/* Badge de Categoria */}
+                    {item.category && item.category !== 'OUTRO / GERAL' && !item.isDiscipline && (
+                      <span className="badge bg-light text-dark border flex-shrink-0" style={{ fontSize: '0.65rem' }}>
+                        {item.category}
+                      </span>
+                    )}
+
+                    {/* Badge de Tipo de Ensaio Fotográfico */}
+                    {item.category === 'ENSAIO FOTOGRÁFICO' && item.photoShootType && (
+                      <span className="badge bg-info-subtle text-info-emphasis border border-info-subtle flex-shrink-0" style={{ fontSize: '0.65rem' }}>
+                        📷 {item.photoShootType}
+                      </span>
+                    )}
+
+                    {/* Título do Compromisso */}
+                    <span className={`fw-semibold small text-truncate ${isCompleted ? 'text-decoration-line-through text-muted' : isPassed ? 'text-muted' : 'text-dark'}`}>
+                      {item.title}
+                    </span>
+
+                    {/* Destaque Visual para Avaliação UFCSPA */}
+                    {item.activeEvaluation && (
+                      <span className="badge bg-danger text-white flex-shrink-0" style={{ fontSize: '0.7rem' }}>
+                        <i className="bi bi-exclamation-triangle-fill me-1"></i>
+                        {item.activeEvaluation.examType || 'AVALIAÇÃO'} {item.activeEvaluation.examWeight ? `(${item.activeEvaluation.examWeight})` : ''}
+                      </span>
+                    )}
+
+                    {!item.isDiscipline && getPriorityBadge(item.priority)}
                   </div>
 
-                  <span className={`fw-semibold small text-truncate ${isCompleted ? 'text-decoration-line-through text-muted' : isPassed ? 'text-muted' : 'text-dark'}`}>
-                    {item.title}
-                  </span>
-
-                  {/* Destaque Visual para Avaliação UFCSPA */}
-                  {item.activeEvaluation && (
-                    <span className="badge bg-danger text-white flex-shrink-0" style={{ fontSize: '0.7rem' }}>
-                      <i className="bi bi-exclamation-triangle-fill me-1"></i>
-                      {item.activeEvaluation.examType || 'AVALIAÇÃO'} {item.activeEvaluation.examWeight ? `(${item.activeEvaluation.examWeight})` : ''}
-                    </span>
+                  {!item.isDiscipline && (
+                    <div className="form-check m-0 p-0 d-flex align-items-center flex-shrink-0">
+                      <input 
+                        type="checkbox" 
+                        className="form-check-input my-0 cursor-pointer"
+                        checked={Boolean(item.isCompleted)}
+                        onChange={(e) => {
+                          e.stopPropagation()
+                          onToggleComplete(item)
+                        }}
+                      />
+                    </div>
                   )}
-
-                  {!item.isDiscipline && getPriorityBadge(item.priority)}
                 </div>
 
-                {!item.isDiscipline && (
-                  <div className="form-check m-0 p-0 d-flex align-items-center flex-shrink-0">
-                    <input 
-                      type="checkbox" 
-                      className="form-check-input my-0 cursor-pointer"
-                      checked={Boolean(item.isCompleted)}
-                      onChange={(e) => {
-                        e.stopPropagation()
-                        onToggleComplete(item)
-                      }}
-                    />
+                {/* INFORMAÇÕES EXPANDIDAS PARA O CARD DO DIA SELECIONADO / CORRENTE */}
+                {isToday && (item.clientName || item.phone || item.location) && (
+                  <div className="mt-1 ps-2 border-start border-2 border-success-subtle extra-small text-muted d-flex gap-3 flex-wrap">
+                    {item.clientName && (
+                      <span><i className="bi bi-person-fill me-1 text-secondary"></i>{item.clientName}</span>
+                    )}
+                    {item.phone && (
+                      <span><i className="bi bi-whatsapp me-1 text-success"></i>{item.phone}</span>
+                    )}
+                    {item.location && (
+                      <span><i className="bi bi-geo-alt-fill me-1 text-danger"></i>{item.location}</span>
+                    )}
                   </div>
                 )}
               </div>

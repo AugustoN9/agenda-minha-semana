@@ -91,6 +91,11 @@ function AppointmentModal({
     if (appointmentToEdit) {
       const hasRealId = Boolean(appointmentToEdit.id || appointmentToEdit._id)
 
+      let loadedContacts = appointmentToEdit.contactsList || []
+      if (!Array.isArray(loadedContacts) || loadedContacts.length === 0) {
+        loadedContacts = [{ name: appointmentToEdit.clientName || '', email: '', phone: appointmentToEdit.phone || '', contactCategory: '' }]
+      }
+
       setFormData({
         ...appointmentToEdit,
         title: appointmentToEdit.title || '',
@@ -109,9 +114,7 @@ function AppointmentModal({
         clientName: appointmentToEdit.clientName || '',
         phone: appointmentToEdit.phone || '',
         shift: appointmentToEdit.shift || 'Manhã',
-        contactsList: appointmentToEdit.contactsList && appointmentToEdit.contactsList.length > 0
-          ? appointmentToEdit.contactsList
-          : [{ name: '', email: '', phone: '', contactCategory: '' }]
+        contactsList: loadedContacts
       })
 
       setIsEditing(!hasRealId)
@@ -144,25 +147,26 @@ function AppointmentModal({
       })
       setIsEditing(true)
     }
-  }, [show, appointmentToEdit])
+  }, [show, appointmentToEdit, mode])
 
   if (!show) return null
 
-  // Gestão de Contactos para Envio de E-mail
+  // Gestão de Contatos
   const handleAddContact = () => {
-    setFormData({
-      ...formData,
-      contactsList: [...formData.contactsList, { name: '', email: '', phone: '', contactCategory: '' }]
-    })
+    setFormData(prev => ({
+      ...prev,
+      contactsList: [...(prev.contactsList || []), { name: '', email: '', phone: '', contactCategory: '' }]
+    }))
   }
 
   const handleRemoveContact = (index) => {
-    const updated = formData.contactsList.filter((_, i) => i !== index)
-    setFormData({ ...formData, contactsList: updated })
+    const updated = (formData.contactsList || []).filter((_, i) => i !== index)
+    setFormData({ ...formData, contactsList: updated.length ? updated : [{ name: '', email: '', phone: '', contactCategory: '' }] })
   }
 
   const handleContactChange = (index, field, value) => {
-    const updated = [...formData.contactsList]
+    const updated = [...(formData.contactsList || [])]
+    if (!updated[index]) updated[index] = { name: '', email: '', phone: '', contactCategory: '' }
     updated[index][field] = value
     setFormData({ ...formData, contactsList: updated })
   }
@@ -184,10 +188,24 @@ function AppointmentModal({
     e.preventDefault()
 
     let finalTitle = formData.title
+    let sanitizedContacts = []
 
+    // Só envia contactsList preenchido se for ENVIO DE E-MAIL
     if (formData.category === 'ENVIO DE E-MAIL') {
+      sanitizedContacts = (formData.contactsList || []).filter(c => c && c.name && c.name.trim() !== '')
+      
+      if (sanitizedContacts.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Contato Obrigatório',
+          text: 'Informe ao menos o Nome do destinatário para o envio de e-mail.',
+          confirmButtonColor: '#10b981'
+        })
+        return
+      }
+
       if (!finalTitle.trim()) {
-        const firstContact = formData.contactsList[0]?.name || 'Contactos'
+        const firstContact = sanitizedContacts[0]?.name || 'Contato'
         finalTitle = `Envio de E-mail - ${firstContact}`
       }
     } else if (formData.category === 'ENSAIO FOTOGRÁFICO') {
@@ -255,9 +273,11 @@ function AppointmentModal({
       title: finalTitle,
       endTime: calculatedEnd,
       category: mode === 'disciplina' ? 'DISCIPLINA' : formData.category,
+      contactsList: sanitizedContacts, // Array limpo (vazio se não for ENVIO DE E-MAIL)
       isExam: formData.category === 'AVALIAÇÃO UFCSPA' || formData.category === 'PROVA',
       location: formData.room || formData.location
     }
+
     onSave(dataToSave)
   }
 
@@ -268,6 +288,8 @@ function AppointmentModal({
       onClose()
     }
   }
+
+  const activeContacts = (formData.contactsList || []).filter(c => c && (c.name || c.email || c.phone))
 
   return (
     <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -302,45 +324,49 @@ function AppointmentModal({
                 </div>
               </div>
 
-              {/* LISTA DE CONTACTOS DE E-MAIL COM CHAMADA DIRETA */}
-              {formData.category === 'ENVIO DE E-MAIL' && formData.contactsList?.length > 0 && (
+              {/* LISTA DE CONTATOS DE E-MAIL */}
+              {formData.category === 'ENVIO DE E-MAIL' && (
                 <div className="p-3 bg-light rounded-3 border mb-3">
                   <h6 className="fw-bold text-dark mb-3">
                     <i className="bi bi-people-fill me-2 text-primary"></i> 
                     Destinatários para Envio
                   </h6>
 
-                  <div className="d-flex flex-column gap-2">
-                    {formData.contactsList.map((c, i) => (
-                      <div key={i} className="p-3 bg-white rounded border d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div>
-                          <div className="fw-bold text-dark">
-                            {c.name}
-                            {c.contactCategory && (
-                              <span className="badge bg-secondary-subtle text-secondary border ms-2" style={{ fontSize: '0.7rem' }}>
-                                {c.contactCategory}
-                              </span>
-                            )}
+                  {activeContacts.length === 0 ? (
+                    <p className="text-muted small m-0">Nenhum contato especificado.</p>
+                  ) : (
+                    <div className="d-flex flex-column gap-2">
+                      {activeContacts.map((c, i) => (
+                        <div key={i} className="p-3 bg-white rounded border d-flex justify-content-between align-items-center flex-wrap gap-2">
+                          <div>
+                            <div className="fw-bold text-dark">
+                              {c.name || 'Sem nome'}
+                              {c.contactCategory && (
+                                <span className="badge bg-secondary-subtle text-secondary border ms-2" style={{ fontSize: '0.7rem' }}>
+                                  {c.contactCategory}
+                                </span>
+                              )}
+                            </div>
+                            <div className="small text-muted mt-1">
+                              {c.email && <span className="me-3"><i className="bi bi-envelope me-1"></i>{c.email}</span>}
+                              {c.phone && <span><i className="bi bi-whatsapp me-1 text-success"></i>{c.phone}</span>}
+                            </div>
                           </div>
-                          <div className="small text-muted mt-1">
-                            {c.email && <span className="me-3"><i className="bi bi-envelope me-1"></i>{c.email}</span>}
-                            {c.phone && <span><i className="bi bi-whatsapp me-1 text-success"></i>{c.phone}</span>}
-                          </div>
-                        </div>
 
-                        {c.email && (
-                          <a 
-                            href={`mailto:${c.email}?subject=${encodeURIComponent(formData.title || 'Envio de E-mail')}`}
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="btn btn-sm btn-outline-primary fw-semibold d-flex align-items-center gap-1"
-                          >
-                            <i className="bi bi-send-fill"></i> Escrever E-mail
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                          {c.email && (
+                            <a 
+                              href={`mailto:${c.email}?subject=${encodeURIComponent(formData.title || 'Envio de E-mail')}`}
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="btn btn-sm btn-outline-primary fw-semibold d-flex align-items-center gap-1"
+                            >
+                              <i className="bi bi-send-fill"></i> Escrever E-mail
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -451,19 +477,19 @@ function AppointmentModal({
                         </div>
 
                         <div className="d-flex justify-content-between align-items-center mb-2">
-                          <label className="form-label fw-semibold m-0">Contactos para Envio</label>
+                          <label className="form-label fw-semibold m-0">Contatos para Envio</label>
                           <button 
                             type="button" 
                             className="btn btn-sm btn-outline-primary rounded-circle p-0 d-flex align-items-center justify-content-center" 
                             style={{ width: '28px', height: '28px' }}
                             onClick={handleAddContact}
-                            title="Adicionar Contacto"
+                            title="Adicionar Contato"
                           >
                             <i className="bi bi-plus-lg"></i>
                           </button>
                         </div>
 
-                        {formData.contactsList.map((contact, index) => (
+                        {(formData.contactsList || []).map((contact, index) => (
                           <div key={index} className="p-2 mb-2 bg-white rounded border position-relative">
                             {formData.contactsList.length > 1 && (
                               <button 
@@ -479,9 +505,8 @@ function AppointmentModal({
                                 <input 
                                   type="text" 
                                   className="form-control form-control-sm" 
-                                  placeholder="Nome do Contacto *"
-                                  required
-                                  value={contact.name}
+                                  placeholder="Nome do Contato *"
+                                  value={contact.name || ''}
                                   onChange={(e) => handleContactChange(index, 'name', e.target.value)}
                                 />
                               </div>
@@ -490,7 +515,7 @@ function AppointmentModal({
                                   type="email" 
                                   className="form-control form-control-sm" 
                                   placeholder="E-mail *"
-                                  value={contact.email}
+                                  value={contact.email || ''}
                                   onChange={(e) => handleContactChange(index, 'email', e.target.value)}
                                 />
                               </div>
@@ -502,7 +527,7 @@ function AppointmentModal({
                                   type="text" 
                                   className="form-control form-control-sm" 
                                   placeholder="WhatsApp / Telefone"
-                                  value={contact.phone}
+                                  value={contact.phone || ''}
                                   onChange={(e) => handleContactChange(index, 'phone', e.target.value)}
                                 />
                               </div>
@@ -511,7 +536,7 @@ function AppointmentModal({
                                   type="text" 
                                   className="form-control form-control-sm" 
                                   placeholder="Categoria (ex: Fornecedor Luvas Médicas)"
-                                  value={contact.contactCategory}
+                                  value={contact.contactCategory || ''}
                                   onChange={(e) => handleContactChange(index, 'contactCategory', e.target.value)}
                                 />
                               </div>

@@ -22,6 +22,7 @@ function CalendarWidget({ selectedDate, onSelectDate, appointments = [] }) {
     onSelectDate(next)
   }
 
+  // Identifica o nível máximo de prioridade dos compromissos pendentes de um determinado dia
   const getDayPriorityStatus = (dayNum) => {
     const monthStr = String(month + 1).padStart(2, '0')
     const dayStr = String(dayNum).padStart(2, '0')
@@ -29,34 +30,39 @@ function CalendarWidget({ selectedDate, onSelectDate, appointments = [] }) {
 
     const dayApps = appointments.filter(a => a.date === isoDate && !a.isCompleted)
 
-    const hasMuitoAlta = dayApps.some(a => a.priority === 'MUITO ALTA')
-    if (hasMuitoAlta) return 'MUITO ALTA'
+    if (dayApps.length === 0) return null
 
-    const hasAlta = dayApps.some(a => a.priority === 'ALTA')
-    if (hasAlta) return 'ALTA'
-
-    return null
+    if (dayApps.some(a => a.priority === 'MUITO ALTA')) return 'MUITO ALTA'
+    if (dayApps.some(a => a.priority === 'ALTA')) return 'ALTA'
+    
+    // Retorna 'GERAL' para dias que possuem compromissos (Sem Prioridade, Baixa ou Média)
+    return 'GERAL'
   }
 
   const renderDays = () => {
     const days = []
 
+    // Preenche os espaços vazios do início do mês
     for (let i = 0; i < firstDayOfWeek; i++) {
       days.push(
         <div key={`empty-${i}`} style={{ width: '14.28%' }} className="text-center p-1"></div>
       )
     }
 
+    // Renderiza os dias do mês
     for (let d = 1; d <= daysInMonth; d++) {
       const isSelected = selectedDate.getDate() === d && selectedDate.getMonth() === month && selectedDate.getFullYear() === year
       const priorityStatus = getDayPriorityStatus(d)
 
+      // Define a classe CSS de destaque de acordo com a prioridade do dia
       let priorityClass = ''
       if (!isSelected) {
         if (priorityStatus === 'MUITO ALTA') {
           priorityClass = 'bg-danger text-white rounded-3 fw-bold shadow-sm'
         } else if (priorityStatus === 'ALTA') {
           priorityClass = 'bg-warning text-dark border border-warning-subtle rounded-3 fw-bold shadow-sm'
+        } else if (priorityStatus === 'GERAL') {
+          priorityClass = 'bg-secondary-subtle text-dark border rounded-3 fw-semibold'
         }
       }
 
@@ -68,9 +74,9 @@ function CalendarWidget({ selectedDate, onSelectDate, appointments = [] }) {
           style={{ width: '14.28%', cursor: 'pointer' }}
         >
           <div 
-            className={`d-flex align-items-center justify-content-center fw-semibold ${
+            className={`d-flex align-items-center justify-content-center ${
               isSelected 
-                ? 'bg-dark text-white rounded-circle shadow-sm' 
+                ? 'bg-dark text-white rounded-circle shadow-sm fw-bold' 
                 : priorityClass
             }`}
             style={{ width: '32px', height: '32px', fontSize: '0.85rem', transition: 'all 0.2s ease' }}
@@ -90,7 +96,7 @@ function CalendarWidget({ selectedDate, onSelectDate, appointments = [] }) {
     <div className="card border-0 shadow-sm rounded-4 overflow-hidden bg-white h-100">
       <div className="row g-0 h-100">
         
-        {/* Painel Esquerdo com Destaque do Dia */}
+        {/* Painel Esquerdo com Destaque do Dia Selecionado */}
         <div className="col-5 bg-success text-white p-3 d-flex flex-column justify-content-between">
           <div className="fs-5 fw-bold opacity-75">{year}</div>
           <div className="display-1 fw-bold text-center my-auto">
